@@ -1,10 +1,30 @@
-import React from "react";
-import { Text, View } from "react-native";
+import ThemeToggleButton from "@/components/ThemeToggleButton";
+import { ThemeContext } from "@/context/ThemeProvider";
+import React, { useContext } from "react";
+import { StyleSheet, Text, View } from "react-native";
 
-export default function profile() {
+export default function Profile() {
+  const themeContext = useContext(ThemeContext);
+  if (!themeContext) return null;
+  const { theme } = themeContext;
+
   return (
-    <View>
-      <Text>profile</Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <Text style={[styles.text, { color: theme.text }]}>Profile</Text>
+      <ThemeToggleButton />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  text: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+});
