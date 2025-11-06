@@ -288,7 +288,14 @@ export default function Register() {
           {/* Next / Register Button */}
           <TouchableOpacity
             style={[styles.button, { backgroundColor: theme.orange }]}
-            onPress={step === 3 ? () => console.log(formData) : nextStep}
+            onPress={
+              step === 3
+                ? () => {
+                    console.log(formData);
+                    router.push("/(main)/home");
+                  }
+                : nextStep
+            }
           >
             <Text style={styles.buttonText}>
               {step === 3 ? "Registrarme" : "Siguiente"}
@@ -339,14 +346,14 @@ const styles = StyleSheet.create({
     width: "90%",
     alignSelf: "center",
     padding: 14,
-    borderRadius: 10,
+    borderRadius: 100,
     marginTop: 40,
   },
   buttonText: {
     color: "white",
     textAlign: "center",
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 24,
   },
   pickerContainer: { width: "90%", marginVertical: 8 },
   pickerButton: {
