@@ -61,7 +61,10 @@ export default function Login() {
         />
       </View>
 
-      <TouchableOpacity style={styles.forgotButton}>
+      <TouchableOpacity
+        onPress={() => router.push("/recover")}
+        style={styles.forgotButton}
+      >
         <Text style={{ color: theme.text }}>¿Olvidaste tu contraseña?</Text>
       </TouchableOpacity>
 

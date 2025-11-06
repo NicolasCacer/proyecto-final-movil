@@ -3,20 +3,31 @@ import { ThemeContext } from "@/context/ThemeProvider";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useContext, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context"; // ✅ import correcto
+import { Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function RecoverScreen() {
+export default function UpdatePassword() {
   const router = useRouter();
   const themeContext = useContext(ThemeContext);
-  const [email, setEmail] = useState("");
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   if (!themeContext) return null;
   const { theme } = themeContext;
 
-  const handleSend = () => {
-    console.log("Enviar enlace a:", email);
-    router.push("/update"); // Ajusta según la ruta deseada
+  const handleSave = () => {
+    if (!newPassword || !confirmPassword) {
+      Alert.alert("Error", "Por favor completa ambos campos");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Error", "Las contraseñas no coinciden");
+      return;
+    }
+    console.log("Nueva contraseña:", newPassword);
+    // Aquí podrías llamar a tu API de actualización de contraseña
+    router.push("/login");
   };
 
   return (
@@ -33,30 +44,45 @@ export default function RecoverScreen() {
       </TouchableOpacity>
 
       {/* Título */}
-      <Text style={[styles.title, { color: theme.text }]}>¡Recupérala!</Text>
+      <Text style={[styles.title, { color: theme.text }]}>
+        Actualiza tu contraseña
+      </Text>
 
       {/* Explicación */}
       <Text style={[styles.description, { color: theme.text }]}>
-        Enviaremos un enlace a tu correo. Revisa tu bandeja y sigue las
-        instrucciones para recuperar tu cuenta.
+        Ingresa tu nueva contraseña y confírmala para actualizarla.
       </Text>
 
-      {/* Input de email usando CustomInput */}
+      {/* Nueva contraseña */}
       <CustomInput
-        placeholder="Correo"
-        iconLeft="mail-outline"
-        value={email}
-        onChangeText={setEmail}
+        placeholder="Nueva contraseña"
+        iconLeft="lock-closed-outline"
+        iconRight="eye-outline"
+        secureTextEntry
+        value={newPassword}
+        onChangeText={setNewPassword}
         borderColor={theme.text}
         color={theme.text}
       />
 
-      {/* Botón de enviar */}
+      {/* Confirmar contraseña */}
+      <CustomInput
+        placeholder="Confirmar contraseña"
+        iconLeft="lock-closed-outline"
+        iconRight="eye-outline"
+        secureTextEntry
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        borderColor={theme.text}
+        color={theme.text}
+      />
+
+      {/* Botón de guardar */}
       <TouchableOpacity
         style={[styles.sendButton, { backgroundColor: theme.orange }]}
-        onPress={handleSend}
+        onPress={handleSave}
       >
-        <Text style={styles.sendText}>Enviar enlace</Text>
+        <Text style={styles.sendText}>Guardar Cambios</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -91,13 +117,13 @@ const styles = StyleSheet.create({
   sendButton: {
     width: "90%",
     padding: 14,
-    borderRadius: 100,
+    borderRadius: 12,
     alignItems: "center",
     marginTop: 20,
   },
   sendText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: 24,
+    fontSize: 18,
   },
 });
