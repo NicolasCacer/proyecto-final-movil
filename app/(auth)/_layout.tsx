@@ -2,12 +2,15 @@
 import { ThemeContext, ThemeProvider } from "@/context/ThemeProvider";
 import { Stack } from "expo-router";
 import { useContext } from "react";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <ThemedStack />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <ThemedStack />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
