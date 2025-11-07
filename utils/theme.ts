@@ -5,6 +5,7 @@ export interface Theme {
   orange: string;
   red: string;
   tabBar: string;
+  tabsBack: string;
 }
 
 export const lightTheme: Theme = {
@@ -13,6 +14,7 @@ export const lightTheme: Theme = {
   orange: "#FF7E33",
   red: "#FF160A",
   tabBar: "rgba(0,0,0,0.30)",
+  tabsBack: "#b8b8b8ff",
 };
 
 export const darkTheme: Theme = {
@@ -21,4 +23,5 @@ export const darkTheme: Theme = {
   orange: "#FF7E33",
   red: "#FF160A",
   tabBar: "rgba(255,255,255,0.35)",
+  tabsBack: "#2c2528",
 };
