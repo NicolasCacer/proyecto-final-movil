@@ -1,5 +1,4 @@
 import { ThemeContext } from "@/context/ThemeProvider";
-import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { Tabs } from "expo-router";
 import React, { useContext } from "react";
 import { View } from "react-native";
@@ -135,8 +134,8 @@ export default function RootLayout() {
               bottom: 16,
               marginHorizontal: 18,
               paddingVertical: 5,
-              backgroundColor: theme.text,
-              opacity: 0.2,
+              backgroundColor: theme.tabsBack,
+              opacity: 1,
               borderRadius: 18,
               elevation: 5,
               shadowColor: "#000",
