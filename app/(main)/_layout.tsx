@@ -1,5 +1,4 @@
 import { ThemeContext } from "@/context/ThemeProvider";
-import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { Tabs } from "expo-router";
 import React, { useContext } from "react";
 import { View } from "react-native";
