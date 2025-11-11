@@ -2,15 +2,10 @@ import EmailIcon from "@/components/emailIcon";
 import LockIcon from "@/components/lockIcon";
 import LogoIcon from "@/components/logoIcon";
 import { ThemeContext } from "@/context/ThemeProvider";
+import AppText from "@/utils/AppText";
 import { useRouter } from "expo-router";
 import { useContext, useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function Login() {
   const router = useRouter();
@@ -23,9 +18,13 @@ export default function Login() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={[styles.title, { color: theme.text }]}>¡Bienvenido!</Text>
+      <AppText style={[styles.title, { color: theme.text }]}>
+        ¡Bienvenido!
+      </AppText>
       <LogoIcon width={120} height={120} color="#ff7E33" />
-      <Text style={[styles.logoText, { color: theme.orange }]}>GymCol</Text>
+      <AppText style={[styles.logoText, { color: theme.orange }]}>
+        GymCol
+      </AppText>
 
       {/* Campo Email */}
       <View
@@ -65,19 +64,21 @@ export default function Login() {
         onPress={() => router.push("/recover")}
         style={styles.forgotButton}
       >
-        <Text style={{ color: theme.text }}>¿Olvidaste tu contraseña?</Text>
+        <AppText style={{ color: theme.text }}>
+          ¿Olvidaste tu contraseña?
+        </AppText>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.loginButton, { backgroundColor: theme.orange }]}
         onPress={() => router.push("/home")}
       >
-        <Text style={[styles.loginText]}>Iniciar Sesión</Text>
+        <AppText style={[styles.loginText]}>Iniciar Sesión</AppText>
       </TouchableOpacity>
 
       <View style={styles.separatorContainer}>
         <View style={[styles.line, { backgroundColor: theme.text }]} />
-        <Text style={{ color: theme.text, marginHorizontal: 10 }}>ó</Text>
+        <AppText style={{ color: theme.text, marginHorizontal: 10 }}>ó</AppText>
         <View style={[styles.line, { backgroundColor: theme.text }]} />
       </View>
 
@@ -85,9 +86,9 @@ export default function Login() {
         style={[styles.registerButton, { backgroundColor: theme.text }]}
         onPress={() => router.push("/register")}
       >
-        <Text style={[styles.registerText, { color: theme.background }]}>
+        <AppText style={[styles.registerText, { color: theme.background }]}>
           Registrarme
-        </Text>
+        </AppText>
       </TouchableOpacity>
     </View>
   );
@@ -123,6 +124,8 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     padding: 12,
+    fontFamily: "Onest",
+    fontSize: 18,
   },
   forgotButton: {
     marginTop: 10,

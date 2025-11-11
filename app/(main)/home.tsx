@@ -1,19 +1,17 @@
+import FoodCard from "@/components/foodCard";
+import GaugeProgress from "@/components/gaugeProgress";
+import TrendChart from "@/components/trendChart";
 import { ThemeContext } from "@/context/ThemeProvider";
+import AppText from "@/utils/AppText";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useContext, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import Svg, { G, Path } from "react-native-svg";
 
 export default function Home() {
   const themeContext = useContext(ThemeContext);
-  const [user, setUser] = useState("Pepito");
+  const [user] = useState("Pepito");
   if (!themeContext) return null;
   const { theme } = themeContext;
 
@@ -43,12 +41,14 @@ export default function Home() {
             alignItems: "flex-start",
           }}
         >
-          <Text style={{ fontSize: 36, fontWeight: "bold", color: theme.text }}>
+          <AppText
+            style={{ fontSize: 36, fontWeight: "bold", color: theme.text }}
+          >
             Hola, {user}!
-          </Text>
-          <Text style={{ fontSize: 20, color: theme.text }}>
+          </AppText>
+          <AppText style={{ fontSize: 20, color: theme.text }}>
             Listo para entrenar?
-          </Text>
+          </AppText>
         </View>
         <Image
           source={{
@@ -101,9 +101,9 @@ export default function Home() {
                 fill="none"
               />
             </Svg>
-            <Text style={{ fontSize: 18, color: theme.text }}>
+            <AppText style={{ fontSize: 18, color: theme.text }}>
               Recomendación IA
-            </Text>
+            </AppText>
           </TouchableOpacity>
         </LinearGradient>
       </View>
@@ -133,7 +133,7 @@ export default function Home() {
             gap: 15,
           }}
         >
-          <Text
+          <AppText
             style={{
               fontSize: 24,
               color: theme.text,
@@ -142,7 +142,7 @@ export default function Home() {
             }}
           >
             Rutina Cuerpo Completo
-          </Text>
+          </AppText>
           <View
             style={{
               flexDirection: "row",
@@ -160,7 +160,7 @@ export default function Home() {
                 />
               </G>
             </Svg>
-            <Text
+            <AppText
               style={{
                 fontSize: 16,
                 color: theme.text,
@@ -169,8 +169,8 @@ export default function Home() {
               }}
             >
               {45} min
-            </Text>
-            <Text
+            </AppText>
+            <AppText
               style={{
                 fontSize: 16,
                 color: theme.text,
@@ -182,7 +182,7 @@ export default function Home() {
               }}
             >
               medio
-            </Text>
+            </AppText>
           </View>
 
           <TouchableOpacity
@@ -195,15 +195,16 @@ export default function Home() {
               justifyContent: "center",
             }}
           >
-            <Text
+            <AppText
               style={{
                 fontSize: 20,
                 color: theme.text,
                 fontWeight: "bold",
+                fontFamily: "onest",
               }}
             >
               Comenzar
-            </Text>
+            </AppText>
           </TouchableOpacity>
         </View>
         <Image
@@ -217,101 +218,61 @@ export default function Home() {
           }}
         ></Image>
       </View>
-      <Text
+      <AppText
         style={{
-          fontSize: 20,
+          fontSize: 24,
           width: "100%",
           color: theme.text,
           flexDirection: "row",
           justifyContent: "flex-start",
-          marginVertical: 20,
+          marginTop: 20,
           marginLeft: 10,
+          marginBottom: 20,
           fontWeight: "bold",
         }}
       >
         Actividad semanal
-      </Text>
+      </AppText>
 
-      <View
+      <TrendChart
+        data={{ L: 500, M: 100, Mi: 200, J: 450, V: 0, S: 260, D: 50 }}
+      />
+      <AppText
         style={{
-          flexDirection: "column",
-          marginTop: 20,
-          backgroundColor: theme.tabsBack,
-          width: "100%",
-          height: 150,
-          borderRadius: 20,
-        }}
-      ></View>
-      <Text
-        style={{
-          fontSize: 20,
+          fontSize: 24,
           width: "100%",
           color: theme.text,
           flexDirection: "row",
           justifyContent: "flex-start",
-          marginVertical: 20,
+          marginTop: 20,
           marginLeft: 10,
+          marginBottom: 20,
           fontWeight: "bold",
         }}
       >
         Avances
-      </Text>
-      <View
+      </AppText>
+      <GaugeProgress
+        data={{ L: 500, M: 100, Mi: 200, J: 450, V: 0, S: 260, D: 50 }}
+        meta={2000}
+      ></GaugeProgress>
+      <AppText
         style={{
-          flexDirection: "row",
-          marginVertical: 20,
-          width: "100%",
-          height: 150,
-          borderRadius: 20,
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "column",
-            marginTop: 20,
-            backgroundColor: theme.tabsBack,
-            opacity: 0.5,
-            width: "50%",
-            height: 150,
-            borderRadius: 20,
-          }}
-        ></View>
-        <View
-          style={{
-            flexDirection: "column",
-            marginTop: 20,
-            backgroundColor: theme.tabsBack,
-            width: "50%",
-            height: 150,
-            borderRadius: 20,
-          }}
-        ></View>
-      </View>
-      <Text
-        style={{
-          fontSize: 20,
+          fontSize: 24,
           width: "100%",
           color: theme.text,
           flexDirection: "row",
           justifyContent: "flex-start",
-          marginVertical: 20,
+          marginTop: 20,
           marginLeft: 10,
+          marginBottom: 20,
           fontWeight: "bold",
         }}
       >
         Alimentación
-      </Text>
+      </AppText>
 
-      <View
-        style={{
-          flexDirection: "column",
-          marginTop: 20,
-          backgroundColor: theme.tabsBack,
-          width: "100%",
-          height: 150,
-          borderRadius: 20,
-        }}
-      ></View>
+      <FoodCard></FoodCard>
     </ScrollView>
   );
 }

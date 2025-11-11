@@ -1,9 +1,10 @@
 import CustomInput from "@/components/customInput";
 import { ThemeContext } from "@/context/ThemeProvider";
+import AppText from "@/utils/AppText";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useContext, useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { Alert, StyleSheet, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function UpdatePassword() {
@@ -40,18 +41,20 @@ export default function UpdatePassword() {
         onPress={() => router.replace("/login")}
       >
         <Ionicons name="chevron-back" size={24} color={theme.text} />
-        <Text style={[styles.backText, { color: theme.text }]}>Volver</Text>
+        <AppText style={[styles.backText, { color: theme.text }]}>
+          Volver
+        </AppText>
       </TouchableOpacity>
 
       {/* Título */}
-      <Text style={[styles.title, { color: theme.text }]}>
+      <AppText style={[styles.title, { color: theme.text }]}>
         Actualiza tu contraseña
-      </Text>
+      </AppText>
 
       {/* Explicación */}
-      <Text style={[styles.description, { color: theme.text }]}>
+      <AppText style={[styles.description, { color: theme.text }]}>
         Ingresa tu nueva contraseña y confírmala para actualizarla.
-      </Text>
+      </AppText>
 
       {/* Nueva contraseña */}
       <CustomInput
@@ -82,7 +85,7 @@ export default function UpdatePassword() {
         style={[styles.sendButton, { backgroundColor: theme.orange }]}
         onPress={handleSave}
       >
-        <Text style={styles.sendText}>Guardar Cambios</Text>
+        <AppText style={styles.sendText}>Guardar Cambios</AppText>
       </TouchableOpacity>
     </SafeAreaView>
   );
