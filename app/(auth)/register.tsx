@@ -1,5 +1,6 @@
 import CustomInput from "@/components/customInput";
 import { ThemeContext } from "@/context/ThemeProvider";
+import AppText from "@/utils/AppText";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
@@ -8,7 +9,6 @@ import {
   Modal,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -37,7 +37,7 @@ export default function Register() {
   if (!themeContext) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Cargando...</Text>
+        <AppText>Cargando...</AppText>
       </View>
     );
   }
@@ -60,7 +60,9 @@ export default function Register() {
           onPress={() => router.replace("/login")}
         >
           <Ionicons name="chevron-back" size={24} color={theme.text} />
-          <Text style={[styles.backText, { color: theme.text }]}>Volver</Text>
+          <AppText style={[styles.backText, { color: theme.text }]}>
+            Volver
+          </AppText>
         </TouchableOpacity>
 
         {/* Progress steps */}
@@ -84,9 +86,9 @@ export default function Register() {
         <View style={styles.formContainer}>
           {step === 0 && (
             <View style={styles.stepContainer}>
-              <Text style={[styles.title, { color: theme.text }]}>
+              <AppText style={[styles.title, { color: theme.text }]}>
                 ¿Empezamos?
-              </Text>
+              </AppText>
               <CustomInput
                 placeholder="Nombre"
                 iconLeft="person-outline"
@@ -128,9 +130,9 @@ export default function Register() {
 
           {step === 1 && (
             <View style={styles.stepContainer}>
-              <Text style={[styles.title, { color: theme.text }]}>
+              <AppText style={[styles.title, { color: theme.text }]}>
                 ¿Cómo vas?
-              </Text>
+              </AppText>
               <CustomInput
                 placeholder="Peso actual (kg)"
                 iconLeft="barbell-outline"
@@ -165,14 +167,14 @@ export default function Register() {
                     color={theme.text}
                     style={{ marginRight: 8 }}
                   />
-                  <Text
+                  <AppText
                     style={{
                       color: formData.actividad ? theme.text : "#888",
                       flex: 1,
                     }}
                   >
                     {formData.actividad || "Selecciona nivel de actividad"}
-                  </Text>
+                  </AppText>
                   <Ionicons
                     name="chevron-down-outline"
                     size={22}
@@ -211,9 +213,9 @@ export default function Register() {
                           { backgroundColor: theme.text },
                         ]}
                       >
-                        <Text style={{ color: theme.background }}>
+                        <AppText style={{ color: theme.background }}>
                           Cancelar
-                        </Text>
+                        </AppText>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -234,9 +236,9 @@ export default function Register() {
 
           {step === 2 && (
             <View style={styles.stepContainer}>
-              <Text style={[styles.title, { color: theme.text }]}>
+              <AppText style={[styles.title, { color: theme.text }]}>
                 Tus metas
-              </Text>
+              </AppText>
               <CustomInput
                 placeholder="Peso ideal (kg)"
                 iconLeft="barbell-outline"
@@ -260,9 +262,9 @@ export default function Register() {
 
           {step === 3 && (
             <View style={styles.stepContainer}>
-              <Text style={[styles.title, { color: theme.text }]}>
+              <AppText style={[styles.title, { color: theme.text }]}>
                 Dile a tu entrenador IA
-              </Text>
+              </AppText>
 
               <View
                 style={[styles.multilineInput, { borderColor: theme.text }]}
@@ -277,11 +279,11 @@ export default function Register() {
                 />
               </View>
 
-              <Text style={[styles.wordCount, { color: theme.text }]}>
+              <AppText style={[styles.wordCount, { color: theme.text }]}>
                 {formData.gustos?.trim().split(/\s+/).filter(Boolean).length ??
                   0}
                 /200 palabras
-              </Text>
+              </AppText>
             </View>
           )}
 
@@ -297,9 +299,9 @@ export default function Register() {
                 : nextStep
             }
           >
-            <Text style={styles.buttonText}>
+            <AppText style={styles.buttonText}>
               {step === 3 ? "Registrarme" : "Siguiente"}
-            </Text>
+            </AppText>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -383,5 +385,11 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     height: 170,
   },
-  textarea: { flex: 1, textAlignVertical: "top", fontSize: 16, padding: 10 },
+  textarea: {
+    flex: 1,
+    textAlignVertical: "top",
+    fontSize: 16,
+    padding: 10,
+    fontFamily: "Onest",
+  },
 });

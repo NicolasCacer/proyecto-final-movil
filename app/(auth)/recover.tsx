@@ -1,10 +1,11 @@
 import CustomInput from "@/components/customInput";
 import { ThemeContext } from "@/context/ThemeProvider";
+import AppText from "@/utils/AppText";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useContext, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context"; // ✅ import correcto
+import { StyleSheet, TouchableOpacity } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function RecoverScreen() {
   const router = useRouter();
@@ -29,17 +30,21 @@ export default function RecoverScreen() {
         onPress={() => router.replace("/login")}
       >
         <Ionicons name="chevron-back" size={24} color={theme.text} />
-        <Text style={[styles.backText, { color: theme.text }]}>Volver</Text>
+        <AppText style={[styles.backText, { color: theme.text }]}>
+          Volver
+        </AppText>
       </TouchableOpacity>
 
       {/* Título */}
-      <Text style={[styles.title, { color: theme.text }]}>¡Recupérala!</Text>
+      <AppText style={[styles.title, { color: theme.text }]}>
+        ¡Recupérala!
+      </AppText>
 
       {/* Explicación */}
-      <Text style={[styles.description, { color: theme.text }]}>
+      <AppText style={[styles.description, { color: theme.text }]}>
         Enviaremos un enlace a tu correo. Revisa tu bandeja y sigue las
         instrucciones para recuperar tu cuenta.
-      </Text>
+      </AppText>
 
       {/* Input de email usando CustomInput */}
       <CustomInput
@@ -56,7 +61,7 @@ export default function RecoverScreen() {
         style={[styles.sendButton, { backgroundColor: theme.orange }]}
         onPress={handleSend}
       >
-        <Text style={styles.sendText}>Enviar enlace</Text>
+        <AppText style={styles.sendText}>Enviar enlace</AppText>
       </TouchableOpacity>
     </SafeAreaView>
   );

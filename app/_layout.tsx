@@ -1,8 +1,17 @@
 import { ThemeContext, ThemeProvider } from "@/context/ThemeProvider";
+import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { useContext } from "react";
 
 export default function RootLayout() {
+  // Cargar la fuente Onest
+  const [fontsLoaded] = useFonts({
+    Onest: require("../utils/Onest-VariableFont_wght.ttf"),
+  });
+
+  // Esperar hasta que la fuente esté lista
+  if (!fontsLoaded) return null;
+
   return (
     <ThemeProvider>
       <ThemedStack />
@@ -10,7 +19,7 @@ export default function RootLayout() {
   );
 }
 
-// Componente que accede al theme
+// === Componente que accede al tema ===
 function ThemedStack() {
   const themeContext = useContext(ThemeContext);
   if (!themeContext) return null;
