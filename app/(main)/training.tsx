@@ -1,9 +1,8 @@
-import RutinaView from "@/components/training/RutinaView";
 import TrainingCalendar from "@/components/training/TrainingCalendar";
+import RutinaView from "@/components/training/RutinaView";
 import WeekTrainings from "@/components/training/WeekTrainings";
 import { ThemeContext } from "@/context/ThemeProvider";
 import { useTrainings } from "@/hooks/useTrainings";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useContext, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -36,35 +35,14 @@ export default function Training() {
     setCurrentDate(newDate);
   };
 
-  const handleCreateRoutine = () => {
-    console.log("Crear nueva rutina");
-    // Aquí irá la navegación al formulario de crear rutina
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header */}
       <View style={styles.headerContainer}>
-        <View style={styles.headerTop}>
-          <View style={styles.headerTitleContainer}>
-            <Text style={[styles.title, { color: theme.text }]}>
-              Entrenamiento
-            </Text>
-            <Text style={[styles.subtitle, { color: "#999" }]}>
-              Tu plan de ejercicio personalizado
-            </Text>
-          </View>
-
-          {/* Botón crear rutina - solo visible en pestaña Rutina */}
-          {activeTab === "rutina" && (
-            <TouchableOpacity
-              style={[styles.createButton, { backgroundColor: theme.orange }]}
-              onPress={handleCreateRoutine}
-            >
-              <Ionicons name="add" size={24} color="#fff" />
-            </TouchableOpacity>
-          )}
-        </View>
+        <Text style={[styles.title, { color: theme.text }]}>Entrenamiento</Text>
+        <Text style={[styles.subtitle, { color: "#999" }]}>
+          Tu plan de ejercicio personalizado
+        </Text>
 
         {/* Segmented Control */}
         <LinearGradient
@@ -140,15 +118,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
-  headerTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 20,
-  },
-  headerTitleContainer: {
-    flex: 1,
-  },
   title: {
     fontSize: 32,
     fontWeight: "bold",
@@ -156,18 +125,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-  },
-  createButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    marginBottom: 20,
   },
   segmentedControlContainer: {
     borderRadius: 12,
