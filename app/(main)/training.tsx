@@ -1,96 +1,132 @@
+import RutinaView from "@/components/training/RutinaView";
+import TrainingCalendar from "@/components/training/TrainingCalendar";
+import WeekTrainings from "@/components/training/WeekTrainings";
 import { ThemeContext } from "@/context/ThemeProvider";
-import React, { useContext } from "react";
+import { useTrainings } from "@/hooks/useTrainings";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useContext, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function Training() {
   const themeContext = useContext(ThemeContext);
+  const [activeTab, setActiveTab] = useState("rutina");
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  const { entrenamientosProgramados, getWeekTrainings } = useTrainings();
+
   if (!themeContext) return null;
   const { theme } = themeContext;
 
-  const routines = [
-    {
-      id: 1,
-      title: 'Rutina Pecho y trícep',
-      duration: '45 min',
-      difficulty: 'medio',
-      exercises: '5 ejercicios'
-    },
-    {
-      id: 2,
-      title: 'Rutina Espalda y bícep',
-      duration: '45 min',
-      difficulty: 'medio',
-      exercises: '5 ejercicios'
-    },
-    {
-      id: 3,
-      title: 'Pierna y abdomen',
-      duration: '45 min',
-      difficulty: 'medio',
-      exercises: '5 ejercicios'
-    }
+  const tabs = [
+    { id: "rutina", label: "Rutina" },
+    { id: "calendario", label: "Calendario" },
   ];
+
+  const goToPreviousMonth = () => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() - 1);
+    setCurrentDate(newDate);
+  };
+
+  const goToNextMonth = () => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() + 1);
+    setCurrentDate(newDate);
+  };
+
+  const handleCreateRoutine = () => {
+    console.log("Crear nueva rutina");
+    // Aquí irá la navegación al formulario de crear rutina
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.text }]}>Entrenamiento</Text>
-        <Text style={styles.subtitle}>Tu plan de ejercicio personalizado</Text>
+      <View style={styles.headerContainer}>
+        <View style={styles.headerTop}>
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.title, { color: theme.text }]}>
+              Entrenamiento
+            </Text>
+            <Text style={[styles.subtitle, { color: "#999" }]}>
+              Tu plan de ejercicio personalizado
+            </Text>
+          </View>
+
+          {/* Botón crear rutina - solo visible en pestaña Rutina */}
+          {activeTab === "rutina" && (
+            <TouchableOpacity
+              style={[styles.createButton, { backgroundColor: theme.orange }]}
+              onPress={handleCreateRoutine}
+            >
+              <Ionicons name="add" size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Segmented Control */}
+        <LinearGradient
+          colors={[theme.orange, theme.red]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.segmentedControlContainer}
+        >
+          <View style={styles.segmentedControl}>
+            {tabs.map((tab, index) => (
+              <TouchableOpacity
+                key={tab.id}
+                style={[
+                  styles.segment,
+                  activeTab === tab.id && [
+                    styles.activeSegment,
+                    { backgroundColor: theme.background },
+                  ],
+                  index === 0 && styles.firstSegment,
+                  index === tabs.length - 1 && styles.lastSegment,
+                ]}
+                onPress={() => setActiveTab(tab.id)}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    activeTab === tab.id
+                      ? { color: theme.text }
+                      : { color: "rgba(255,255,255,0.7)" },
+                  ]}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </LinearGradient>
       </View>
 
-      {/* Tabs */}
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity style={[styles.tabActive, { backgroundColor: theme.red }]}>
-          <Text style={styles.tabTextActive}>Rutina</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabInactive}>
-          <Text style={styles.tabTextInactive}>Calendario</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Content */}
+      {activeTab === "rutina" ? (
+        <RutinaView />
+      ) : (
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 120 }}
+        >
+          <View style={styles.calendarioContent}>
+            <TrainingCalendar
+              currentDate={currentDate}
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+              onPreviousMonth={goToPreviousMonth}
+              onNextMonth={goToNextMonth}
+              trainings={entrenamientosProgramados}
+            />
 
-      {/* Routines List */}
-      <ScrollView style={styles.routinesList} showsVerticalScrollIndicator={false}>
-        {routines.map((routine) => (
-          <TouchableOpacity key={routine.id} style={styles.routineCard}>
-            <View style={styles.routineContent}>
-              <Text style={styles.routineTitle}>{routine.title}</Text>
-              
-              <View style={styles.routineInfo}>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoIcon}>⏱</Text>
-                  <Text style={styles.infoText}>{routine.duration}</Text>
-                </View>
-                
-                <View style={[styles.badge, styles.badgeMedio]}>
-                  <Text style={styles.badgeText}>{routine.difficulty}</Text>
-                </View>
-                
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoText}>{routine.exercises}</Text>
-                </View>
-              </View>
-            </View>
-            
-            <View style={styles.arrow}>
-              <Text style={styles.arrowIcon}>›</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Action Buttons */}
-      <View style={styles.actionButtons}>
-        <TouchableOpacity style={[styles.buttonAdd, { backgroundColor: theme.red }]}>
-          <Text style={styles.buttonAddIcon}>+</Text>
-          <Text style={styles.buttonAddText}>Agregar Rutina</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={[styles.buttonRecommend, { backgroundColor: theme.orange }]}>
-          <Text style={styles.buttonRecommendIcon}>🔍</Text>
-          <Text style={styles.buttonRecommendText}>Recomendación</Text>
-        </TouchableOpacity>
-      </View>
+            <WeekTrainings trainings={getWeekTrainings(selectedDate)} />
+          </View>
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -98,164 +134,75 @@ export default function Training() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
-    paddingBottom: 110,
   },
-  header: {
+  headerContainer: {
+    paddingTop: 60,
     paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 20,
   },
+  headerTitleContainer: {
+    flex: 1,
+  },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 5,
   },
   subtitle: {
     fontSize: 14,
-    color: '#999999',
   },
-  tabsContainer: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    borderRadius: 25,
-    overflow: 'hidden',
-    backgroundColor: '#2a2a2a',
-    padding: 4,
-  },
-  tabActive: {
-    flex: 1,
-    paddingVertical: 12,
+  createButton: {
+    width: 44,
+    height: 44,
     borderRadius: 22,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
-  tabInactive: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  tabIcon: {
-    fontSize: 16,
-  },
-  tabTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  tabTextInactive: {
-    color: '#999999',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  routinesList: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  routineCard: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  routineContent: {
-    flex: 1,
-  },
-  routineTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 12,
-  },
-  routineInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  infoIcon: {
-    fontSize: 14,
-    color: '#999999',
-  },
-  infoText: {
-    fontSize: 13,
-    color: '#999999',
-  },
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+  segmentedControlContainer: {
     borderRadius: 12,
+    padding: 3,
   },
-  badgeMedio: {
-    backgroundColor: '#2ecc71',
+  segmentedControl: {
+    flexDirection: "row",
+    borderRadius: 10,
   },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  arrow: {
-    marginLeft: 12,
-  },
-  arrowIcon: {
-    fontSize: 32,
-    color: '#666666',
-    fontWeight: '300',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#2a2a2a',
-  },
-  buttonAdd: {
+  segment: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 25,
-    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  buttonAddIcon: {
-    fontSize: 20,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+  activeSegment: {
+    borderRadius: 8,
   },
-  buttonAddText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
+  firstSegment: {
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
   },
-  buttonRecommend: {
+  lastSegment: {
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+  },
+  segmentText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  content: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 25,
-    gap: 8,
   },
-  buttonRecommendIcon: {
-    fontSize: 16,
-  },
-  buttonRecommendText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
+  calendarioContent: {
+    padding: 20,
   },
 });
