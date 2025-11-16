@@ -59,7 +59,7 @@ export default function GaugeProgress({ data, meta }: GaugeProps) {
               textAnchor="middle"
               alignmentBaseline="middle"
             >
-              {totalKcal} KCal
+              {totalKcal}
             </SvgText>
           </Svg>
           <AppText style={[styles.metaText, { color: theme.text }]}>

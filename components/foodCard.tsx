@@ -35,6 +35,7 @@ export default function FoodCard() {
             <AppText style={[styles.title, { color: theme.text }]}>
               Ensalada Mediterránea
             </AppText>
+
             <TouchableOpacity
               onPress={() => setModalVisible(true)}
               style={[styles.button, { backgroundColor: theme.orange }]}
@@ -144,21 +145,32 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+
+  /*  FIX PARA HUAWEI */
   title: {
     fontSize: 20,
     fontWeight: "bold",
-    maxWidth: 150,
+    flexShrink: 1, // evita overflow sin afectar la UI
+    marginRight: 10,
   },
+
   description: {
     fontSize: 15,
     flex: 1,
     marginTop: 6,
   },
+
+  /*  FIX PARA HUAWEI */
   button: {
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 15,
+    flexShrink: 0, // evita que colapse
+    minWidth: 32, // asegura ancho mínimo
+    alignItems: "center",
+    justifyContent: "center",
   },
+
   modalBackground: {
     flex: 1,
     justifyContent: "center",
@@ -172,7 +184,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
     shadowRadius: 10,
-    // Elevation para Android
     elevation: 12,
   },
 });

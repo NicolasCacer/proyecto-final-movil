@@ -235,7 +235,7 @@ export default function Home() {
       </AppText>
 
       <TrendChart
-        data={{ L: 500, M: 100, Mi: 200, J: 450, V: 0, S: 260, D: 50 }}
+        data={{ L: 1000, M: 100, Mi: 200, J: 450, V: 0, S: 260, D: 50 }}
       />
       <AppText
         style={{
