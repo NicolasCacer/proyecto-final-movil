@@ -1,3 +1,4 @@
+import { AuthProvider } from "@/context/AuthContext";
 import { ThemeContext, ThemeProvider } from "@/context/ThemeProvider";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -13,9 +14,11 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <ThemeProvider>
-      <ThemedStack />
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <ThemedStack />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

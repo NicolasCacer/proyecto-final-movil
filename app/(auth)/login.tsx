@@ -1,17 +1,34 @@
 import EmailIcon from "@/components/emailIcon";
 import LockIcon from "@/components/lockIcon";
 import LogoIcon from "@/components/logoIcon";
+import { AuthContext } from "@/context/AuthContext";
 import { ThemeContext } from "@/context/ThemeProvider";
 import AppText from "@/utils/AppText";
 import { useRouter } from "expo-router";
 import { useContext, useState } from "react";
-import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function Login() {
   const router = useRouter();
   const themeContext = useContext(ThemeContext);
+  const authContext = useContext(AuthContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const handleLogin = async () => {
+    const success = await authContext.login(email, password);
+    if (success) {
+      router.push("/home");
+    } else {
+      Alert.alert("Error", "Credenciales incorrectas. Intenta de nuevo.");
+    }
+  };
 
   if (!themeContext) return null;
   const { theme } = themeContext;
@@ -71,7 +88,7 @@ export default function Login() {
 
       <TouchableOpacity
         style={[styles.loginButton, { backgroundColor: theme.orange }]}
-        onPress={() => router.push("/home")}
+        onPress={() => handleLogin()}
       >
         <AppText style={[styles.loginText]}>Iniciar Sesión</AppText>
       </TouchableOpacity>
