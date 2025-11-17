@@ -1,44 +1,91 @@
 import { createContext, useEffect, useState } from "react";
 import { supabase } from "../utils/supabase";
 
+// ---------------------------
+// Interfaces
+// ---------------------------
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  lastname: string;
+  actualweight: number;
+  targetweight: number;
+  height: number;
+  activitylevel: string;
+  fatindex?: number | null;
+  targetfatindex?: number | null;
+  aicontext?: string | null;
+}
+
 interface AuthContextProps {
-  user: any | null;
+  user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string) => Promise<boolean>;
+  register: (password: string, userData: Omit<User, "id">) => Promise<boolean>;
   resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
+// ---------------------------
+// Context
+// ---------------------------
 export const AuthContext = createContext({} as AuthContextProps);
 
+// ---------------------------
+// Provider
+// ---------------------------
 export const AuthProvider = ({ children }: any) => {
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
-  // Mantener sesión activa
+  // ---------------------------
+  // Inicializar sesión
+  // ---------------------------
   useEffect(() => {
     const loadSession = async () => {
       const { data } = await supabase.auth.getSession();
-      if (data.session?.user) setUser(data.session.user);
+      if (data.session?.user) {
+        await refreshUser();
+      }
     };
     loadSession();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user || null);
+      async (_event, session) => {
+        if (session?.user) {
+          await refreshUser();
+        } else {
+          setUser(null);
+        }
       }
     );
 
-    return () => {
-      listener.subscription.unsubscribe();
-    };
+    return () => listener.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ---------------------------
-  // ✔ Login (único funcional)
+  // Formatear perfil al tipo User
+  // ---------------------------
+  const mapUser = (profile: any): User => ({
+    id: profile.id,
+    email: profile.email,
+    name: profile.name,
+    lastname: profile.lastname,
+    actualweight: profile.actualweight,
+    targetweight: profile.targetweight,
+    height: profile.height,
+    activitylevel: profile.activitylevel,
+    fatindex: profile.fatindex,
+    targetfatindex: profile.targetfatindex,
+    aicontext: profile.aicontext,
+  });
+
+  // ---------------------------
+  // Login
   // ---------------------------
   const login = async (email: string, password: string): Promise<boolean> => {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -48,40 +95,100 @@ export const AuthProvider = ({ children }: any) => {
       return false;
     }
 
-    setUser(data.user);
+    await refreshUser();
     return true;
   };
 
   // ---------------------------
-  // AuthProviderRegister (solo estructura)
+  // Registro completo
   // ---------------------------
   const register = async (
-    email: string,
-    password: string
+    password: string,
+    userData: Omit<User, "id">
   ): Promise<boolean> => {
-    console.warn("register() aún no implementado");
-    return false;
+    // 1. Crear usuario en Supabase Auth
+    const { data, error } = await supabase.auth.signUp({
+      email: userData.email,
+      password,
+    });
+
+    if (error || !data.user) {
+      console.error("Error al registrar:", error?.message);
+      return false;
+    }
+
+    const userId = data.user.id;
+
+    // 2. Insertar en profiles con campos EXACTOS de tu DB
+    const { error: insertError } = await supabase.from("profiles").insert({
+      id: userId, // UUID de Auth
+      email: userData.email,
+      name: userData.name,
+      lastname: userData.lastname,
+      actualweight: userData.actualweight,
+      targetweight: userData.targetweight,
+      height: userData.height,
+      activitylevel: userData.activitylevel,
+      fatindex: userData.fatindex ?? null,
+      targetfatindex: userData.targetfatindex ?? null,
+      aicontext: userData.aicontext ?? null,
+    });
+
+    if (insertError) {
+      console.error("Error al insertar perfil:", insertError.message);
+      return false;
+    }
+
+    // 3. Actualizar estado global
+    await refreshUser();
+    return true;
   };
 
   // ---------------------------
-  // AuthProviderReset password (estructura)
+  // Reset Password
   // ---------------------------
   const resetPassword = async (email: string): Promise<void> => {
-    console.warn("resetPassword() aún no implementado");
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    if (error) console.error("Error en reset:", error.message);
   };
 
   // ---------------------------
-  // AuthProviderLogout (estructura)
+  // Logout
   // ---------------------------
   const logout = async (): Promise<void> => {
-    console.warn("logout() aún no implementado");
+    await supabase.auth.signOut();
+    setUser(null);
   };
 
   // ---------------------------
-  // AuthProviderRefresh user (estructura)
+  // Refresh — carga perfil desde DB
   // ---------------------------
   const refreshUser = async (): Promise<void> => {
-    console.warn("refreshUser() aún no implementado");
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session.session?.user?.id;
+
+    if (!userId) {
+      setUser(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error cargando profile:", error.message);
+      return;
+    }
+
+    if (!data) {
+      setUser(null);
+      return;
+    }
+
+    setUser(mapUser(data));
   };
 
   return (

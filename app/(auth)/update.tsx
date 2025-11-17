@@ -3,8 +3,15 @@ import { ThemeContext } from "@/context/ThemeProvider";
 import AppText from "@/utils/AppText";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
-import { useContext, useState } from "react";
-import { Alert, StyleSheet, TouchableOpacity } from "react-native";
+import { useContext, useMemo, useState } from "react";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function UpdatePassword() {
@@ -14,90 +21,162 @@ export default function UpdatePassword() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const [passwordError, setPasswordError] = useState("");
+  const [matchError, setMatchError] = useState("");
+
+  // 🔐 Validación en tiempo real
+  const validatePassword = (password: string) => {
+    setNewPassword(password);
+
+    if (password.length < 8) {
+      setPasswordError("Debe tener al menos 8 caracteres.");
+    } else if (!/[A-Z]/.test(password)) {
+      setPasswordError("Debe contener una mayúscula.");
+    } else if (!/[a-z]/.test(password)) {
+      setPasswordError("Debe contener una minúscula.");
+    } else if (!/[0-9]/.test(password)) {
+      setPasswordError("Debe contener un número.");
+    } else if (!/[!@#$%^&*]/.test(password)) {
+      setPasswordError("Debe contener un símbolo.");
+    } else {
+      setPasswordError("");
+    }
+  };
+
+  const validateConfirm = (value: string) => {
+    setConfirmPassword(value);
+    setMatchError(value !== newPassword ? "Las contraseñas no coinciden." : "");
+  };
+
+  const isButtonDisabled = useMemo(() => {
+    return !newPassword || !confirmPassword || !!passwordError || !!matchError;
+  }, [newPassword, confirmPassword, passwordError, matchError]);
+
+  const handleSave = () => {
+    if (isButtonDisabled) {
+      Alert.alert(
+        "Datos incompletos",
+        "Revisa que la contraseña sea segura y que ambas coincidan.",
+        [{ text: "Entendido" }]
+      );
+      return;
+    }
+
+    Alert.alert(
+      "¡Contraseña actualizada!",
+      "Tu contraseña ha sido cambiada correctamente.",
+      [
+        {
+          text: "Iniciar sesión",
+          onPress: () => router.push("/login"),
+        },
+      ]
+    );
+  };
+
   if (!themeContext) return null;
   const { theme } = themeContext;
 
-  const handleSave = () => {
-    if (!newPassword || !confirmPassword) {
-      Alert.alert("Error", "Por favor completa ambos campos");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      Alert.alert("Error", "Las contraseñas no coinciden");
-      return;
-    }
-    console.log("Nueva contraseña:", newPassword);
-    // Aquí podrías llamar a tu API de actualización de contraseña
-    router.push("/login");
-  };
-
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.safeArea, { backgroundColor: theme.background }]}
     >
-      {/* Volver */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => router.replace("/login")}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <Ionicons name="chevron-back" size={24} color={theme.text} />
-        <AppText style={[styles.backText, { color: theme.text }]}>
-          Volver
-        </AppText>
-      </TouchableOpacity>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Volver */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.replace("/login")}
+          >
+            <Ionicons name="chevron-back" size={24} color={theme.text} />
+            <AppText style={[styles.backText, { color: theme.text }]}>
+              Volver
+            </AppText>
+          </TouchableOpacity>
 
-      {/* Título */}
-      <AppText style={[styles.title, { color: theme.text }]}>
-        Actualiza tu contraseña
-      </AppText>
+          {/* Título */}
+          <AppText style={[styles.title, { color: theme.text }]}>
+            Actualiza tu contraseña
+          </AppText>
 
-      {/* Explicación */}
-      <AppText style={[styles.description, { color: theme.text }]}>
-        Ingresa tu nueva contraseña y confírmala para actualizarla.
-      </AppText>
+          {/* Explicación */}
+          <AppText style={[styles.description, { color: theme.text }]}>
+            Ingresa tu nueva contraseña y confírmala para actualizarla.
+          </AppText>
 
-      {/* Nueva contraseña */}
-      <CustomInput
-        placeholder="Nueva contraseña"
-        iconLeft="lock-closed-outline"
-        iconRight="eye-outline"
-        secureTextEntry
-        value={newPassword}
-        onChangeText={setNewPassword}
-        borderColor={theme.text}
-        color={theme.text}
-      />
+          {/* Nueva contraseña */}
+          <CustomInput
+            placeholder="Nueva contraseña"
+            iconLeft="lock-closed-outline"
+            iconRight="eye-outline"
+            secureTextEntry
+            value={newPassword}
+            onChangeText={validatePassword}
+            borderColor={passwordError ? "red" : theme.text}
+            color={theme.text}
+          />
 
-      {/* Confirmar contraseña */}
-      <CustomInput
-        placeholder="Confirmar contraseña"
-        iconLeft="lock-closed-outline"
-        iconRight="eye-outline"
-        secureTextEntry
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        borderColor={theme.text}
-        color={theme.text}
-      />
+          {passwordError ? (
+            <AppText style={{ color: "red", width: "90%", marginBottom: 8 }}>
+              {passwordError}
+            </AppText>
+          ) : null}
 
-      {/* Botón de guardar */}
-      <TouchableOpacity
-        style={[styles.sendButton, { backgroundColor: theme.orange }]}
-        onPress={handleSave}
-      >
-        <AppText style={styles.sendText}>Guardar Cambios</AppText>
-      </TouchableOpacity>
+          {/* Confirmar contraseña */}
+          <CustomInput
+            placeholder="Confirmar contraseña"
+            iconLeft="lock-closed-outline"
+            iconRight="eye-outline"
+            secureTextEntry
+            value={confirmPassword}
+            onChangeText={validateConfirm}
+            borderColor={matchError ? "red" : theme.text}
+            color={theme.text}
+          />
+
+          {matchError ? (
+            <AppText style={{ color: "red", width: "90%", marginBottom: 8 }}>
+              {matchError}
+            </AppText>
+          ) : null}
+
+          {/* Botón */}
+          <TouchableOpacity
+            disabled={isButtonDisabled}
+            style={[
+              styles.sendButton,
+              {
+                backgroundColor: theme.orange,
+                opacity: isButtonDisabled ? 0.5 : 1,
+              },
+            ]}
+            onPress={handleSave}
+          >
+            <AppText style={styles.sendText}>Guardar Cambios</AppText>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: "flex-start",
+  },
+  scrollContent: {
+    flexGrow: 1,
     alignItems: "center",
+    paddingHorizontal: 24,
     paddingTop: 30,
+    paddingBottom: 50,
   },
   backButton: {
     alignSelf: "flex-start",

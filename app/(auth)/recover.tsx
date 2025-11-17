@@ -4,20 +4,57 @@ import AppText from "@/utils/AppText";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useContext, useState } from "react";
-import { StyleSheet, TouchableOpacity } from "react-native";
+import { Alert, StyleSheet, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function RecoverScreen() {
   const router = useRouter();
   const themeContext = useContext(ThemeContext);
   const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
 
   if (!themeContext) return null;
   const { theme } = themeContext;
 
+  // 🔥 Regex de email
+  const validateEmail = (value: string) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(value.trim());
+  };
+
+  // 🔥 Validación en tiempo real
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+
+    if (value.length === 0) {
+      setError(""); // no mostrar error si está vacío
+      return;
+    }
+
+    if (!validateEmail(value)) {
+      setError("Correo inválido");
+    } else {
+      setError("");
+    }
+  };
+
   const handleSend = () => {
+    if (!validateEmail(email)) {
+      setError("Correo inválido");
+
+      Alert.alert(
+        "Correo no válido",
+        "Por favor ingresa un correo válido para continuar.",
+        [{ text: "Entendido", style: "default" }]
+      );
+
+      return;
+    }
+
+    setError("");
+
     console.log("Enviar enlace a:", email);
-    router.push("/update"); // Ajusta según la ruta deseada
+    router.push("/update");
   };
 
   return (
@@ -46,20 +83,39 @@ export default function RecoverScreen() {
         instrucciones para recuperar tu cuenta.
       </AppText>
 
-      {/* Input de email usando CustomInput */}
+      {/* Input de email */}
       <CustomInput
         placeholder="Correo"
         iconLeft="mail-outline"
         value={email}
-        onChangeText={setEmail}
-        borderColor={theme.text}
+        onChangeText={handleEmailChange}
+        borderColor={error ? "red" : theme.text}
         color={theme.text}
       />
 
+      {/* Error inline */}
+      {error ? (
+        <AppText
+          style={{
+            color: "red",
+            alignSelf: "flex-start",
+            marginLeft: 15,
+            marginTop: -10,
+            marginBottom: 10,
+          }}
+        >
+          {error}
+        </AppText>
+      ) : null}
+
       {/* Botón de enviar */}
       <TouchableOpacity
-        style={[styles.sendButton, { backgroundColor: theme.orange }]}
+        style={[
+          styles.sendButton,
+          { backgroundColor: theme.orange, opacity: email && !error ? 1 : 0.5 },
+        ]}
         onPress={handleSend}
+        disabled={!!error || email.length === 0}
       >
         <AppText style={styles.sendText}>Enviar enlace</AppText>
       </TouchableOpacity>

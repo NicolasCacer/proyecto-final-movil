@@ -1,4 +1,5 @@
 import { AuthProvider } from "@/context/AuthContext";
+import { DataProvider } from "@/context/DataContext";
 import { ThemeContext, ThemeProvider } from "@/context/ThemeProvider";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -15,9 +16,11 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <ThemeProvider>
-        <ThemedStack />
-      </ThemeProvider>
+      <DataProvider>
+        <ThemeProvider>
+          <ThemedStack />
+        </ThemeProvider>
+      </DataProvider>
     </AuthProvider>
   );
 }
