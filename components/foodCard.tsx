@@ -11,10 +11,29 @@ import {
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
-export default function FoodCard() {
+interface FoodCardProps {
+  title: string;
+  image: string;
+  description: string;
+  ingredients: string[];
+  preparation: string;
+  icon?: React.ReactNode;
+  buttonText?: string;
+}
+
+export default function FoodCard({
+  title,
+  image,
+  description,
+  ingredients,
+  preparation,
+  icon,
+  buttonText = "Cerrar",
+}: FoodCardProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const themeContext = useContext(ThemeContext);
   if (!themeContext) return null;
+
   const { theme } = themeContext;
 
   return (
@@ -22,32 +41,31 @@ export default function FoodCard() {
       {/* Tarjeta */}
       <View style={[styles.card, { backgroundColor: theme.tabsBack }]}>
         {/* Imagen */}
-        <Image
-          source={{
-            uri: "https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=150&q=80",
-          }}
-          style={styles.image}
-        />
+        <Image source={{ uri: image }} style={styles.image} />
 
         {/* Info */}
         <View style={styles.infoContainer}>
           <View style={styles.titleRow}>
             <AppText style={[styles.title, { color: theme.text }]}>
-              Ensalada Mediterránea
+              {title}
             </AppText>
+
             <TouchableOpacity
               onPress={() => setModalVisible(true)}
               style={[styles.button, { backgroundColor: theme.orange }]}
             >
-              <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-                <Path
-                  d="M3 19a9 9 0 0 1 9 0a9 9 0 0 1 9 0M3 6a9 9 0 0 1 9 0a9 9 0 0 1 9 0M3 6v13m9-13v13m9-13v13"
-                  stroke={theme.text}
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
+              {/* Ícono dinámico, si no se pasa, se usa uno por defecto */}
+              {icon || (
+                <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+                  <Path
+                    d="M3 19a9 9 0 0 1 9 0a9 9 0 0 1 9 0M3 6a9 9 0 0 1 9 0a9 9 0 0 1 9 0M3 6v13m9-13v13m9-13v13"
+                    stroke={theme.text}
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -55,8 +73,7 @@ export default function FoodCard() {
             style={[styles.description, { color: theme.text }]}
             numberOfLines={4}
           >
-            Una combinación fresca de vegetales, aceite de oliva y hierbas
-            aromáticas para una comida saludable.
+            {description}
           </AppText>
         </View>
       </View>
@@ -73,25 +90,27 @@ export default function FoodCard() {
             style={[styles.modalContent, { backgroundColor: theme.tabsBack }]}
           >
             <AppText style={[styles.title, { color: theme.text }]}>
-              Ensalada Mediterránea
+              {title}
             </AppText>
+
             <ScrollView style={{ marginVertical: 10 }}>
               <AppText style={{ color: theme.text, marginBottom: 5 }}>
                 Ingredientes:
               </AppText>
-              <AppText style={{ color: theme.text }}>
-                - Lechuga{"\n"}- Tomate{"\n"}- Pepino{"\n"}- Aceitunas{"\n"}-
-                Aceite de oliva{"\n"}- Hierbas aromáticas
-              </AppText>
+
+              {ingredients.map((item, index) => (
+                <AppText key={index} style={{ color: theme.text }}>
+                  - {item}
+                </AppText>
+              ))}
+
               <AppText
                 style={{ color: theme.text, marginTop: 10, marginBottom: 5 }}
               >
                 Preparación:
               </AppText>
-              <AppText style={{ color: theme.text }}>
-                Lava y corta los vegetales, mezcla con aceitunas y adereza con
-                aceite de oliva y hierbas.
-              </AppText>
+
+              <AppText style={{ color: theme.text }}>{preparation}</AppText>
             </ScrollView>
 
             <TouchableOpacity
@@ -111,7 +130,7 @@ export default function FoodCard() {
                   fontWeight: "bold",
                 }}
               >
-                Cerrar
+                {buttonText}
               </AppText>
             </TouchableOpacity>
           </View>
@@ -147,7 +166,8 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "bold",
-    maxWidth: 150,
+    flexShrink: 1,
+    marginRight: 10,
   },
   description: {
     fontSize: 15,
@@ -158,6 +178,10 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 15,
+    flexShrink: 0,
+    minWidth: 32,
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalBackground: {
     flex: 1,
@@ -172,7 +196,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
     shadowRadius: 10,
-    // Elevation para Android
     elevation: 12,
   },
 });
