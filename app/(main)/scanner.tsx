@@ -1,107 +1,218 @@
+import DiarioView from "@/components/nutrition/DiarioView";
+import SemanalView from "@/components/nutrition/SemanalView";
 import { ThemeContext } from "@/context/ThemeProvider";
-import React, { useContext } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-
-// Necesitarás instalar: npx expo install @expo/vector-icons
-import { Ionicons } from '@expo/vector-icons';
+import { useNutrition } from "@/hooks/useNutrition";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import React, { useContext, useState } from "react";
+import {
+  Animated,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function Scanner() {
   const themeContext = useContext(ThemeContext);
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("diario");
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [scaleAnim] = useState(new Animated.Value(0));
+
+  const { registrosDiarios, resumenSemanal, calcularTotales } = useNutrition();
+
   if (!themeContext) return null;
   const { theme } = themeContext;
+
+  const tabs = [
+    { id: "diario", label: "Diario" },
+    { id: "semanal", label: "Semanal" },
+  ];
+
+  const { totalCalorias, totalProteina } = calcularTotales(registrosDiarios);
+  const metaCalorias = 2200;
+  const metaProteina = 150;
+
+  const handleOpenMenu = () => {
+    setMenuVisible(true);
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 7,
+    }).start();
+  };
+
+  const handleCloseMenu = () => {
+    Animated.timing(scaleAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setMenuVisible(false));
+  };
+
+  const handleUseCamera = () => {
+    handleCloseMenu();
+    router.push("/scan-barcode");
+  };
+
+  const handleManualEntry = () => {
+    handleCloseMenu();
+    router.push("/add-food");
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.text }]}>Dieta</Text>
-        <Text style={styles.subtitle}>Tu plan alimenticio personalizado.</Text>
+      <View style={styles.headerContainer}>
+        <Text style={[styles.title, { color: theme.text }]}>Nutrición</Text>
+        <Text style={[styles.subtitle, { color: "#999" }]}>
+          Registro de alimentos
+        </Text>
+
+        {/* Segmented Control */}
+        <LinearGradient
+          colors={[theme.orange, theme.red]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.segmentedControlContainer}
+        >
+          <View style={styles.segmentedControl}>
+            {tabs.map((tab, index) => (
+              <TouchableOpacity
+                key={tab.id}
+                style={[
+                  styles.segment,
+                  activeTab === tab.id && [
+                    styles.activeSegment,
+                    { backgroundColor: theme.background },
+                  ],
+                  index === 0 && styles.firstSegment,
+                  index === tabs.length - 1 && styles.lastSegment,
+                ]}
+                onPress={() => setActiveTab(tab.id)}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    activeTab === tab.id
+                      ? { color: theme.text }
+                      : { color: "rgba(255,255,255,0.7)" },
+                  ]}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </LinearGradient>
       </View>
 
-      {/* Tabs */}
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity style={[styles.tabActive, { backgroundColor: theme.red }]}>
-          <Text style={styles.tabTextActive}>Diario</Text>
+      {/* Content */}
+      {activeTab === "diario" ? (
+        <DiarioView
+          registros={registrosDiarios}
+          totalCalorias={totalCalorias}
+          totalProteina={totalProteina}
+          metaCalorias={metaCalorias}
+          metaProteina={metaProteina}
+        />
+      ) : (
+        <SemanalView
+          resumenSemanal={resumenSemanal}
+          metaCalorias={metaCalorias}
+        />
+      )}
+
+      {/* Botón flotante para escanear */}
+      <TouchableOpacity
+        style={[styles.scanButton, { backgroundColor: theme.orange }]}
+        onPress={handleOpenMenu}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="add" size={28} color="#fff" />
+      </TouchableOpacity>
+
+      {/* Modal del menú */}
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="none"
+        onRequestClose={handleCloseMenu}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={handleCloseMenu}
+        >
+          <View style={styles.menuContainer}>
+            <Animated.View
+              style={[
+                styles.menuContent,
+                { backgroundColor: theme.tabsBack },
+                {
+                  transform: [{ scale: scaleAnim }],
+                  opacity: scaleAnim,
+                },
+              ]}
+            >
+              {/* Opción de cámara */}
+              <TouchableOpacity
+                style={[
+                  styles.menuOption,
+                  { borderBottomColor: "rgba(255,255,255,0.1)" },
+                ]}
+                onPress={handleUseCamera}
+              >
+                <View
+                  style={[
+                    styles.menuIconCircle,
+                    { backgroundColor: theme.background },
+                  ]}
+                >
+                  <Ionicons name="camera" size={24} color={theme.orange} />
+                </View>
+                <View style={styles.menuTextContainer}>
+                  <Text style={[styles.menuTitle, { color: theme.text }]}>
+                    Usar Cámara
+                  </Text>
+                  <Text style={styles.menuSubtitle}>
+                    Escanea el código de barras
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#666" />
+              </TouchableOpacity>
+
+              {/* Opción manual */}
+              <TouchableOpacity
+                style={styles.menuOption}
+                onPress={handleManualEntry}
+              >
+                <View
+                  style={[
+                    styles.menuIconCircle,
+                    { backgroundColor: theme.background },
+                  ]}
+                >
+                  <Ionicons name="create" size={24} color={theme.orange} />
+                </View>
+                <View style={styles.menuTextContainer}>
+                  <Text style={[styles.menuTitle, { color: theme.text }]}>
+                    Ingreso Manual
+                  </Text>
+                  <Text style={styles.menuSubtitle}>
+                    Escribe los datos manualmente
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#666" />
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabInactive}>
-          <Text style={styles.tabTextInactive}>Semanal</Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Resumen diario */}
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
-            <Text style={styles.summaryIcon}>⚡</Text>
-            <Text style={styles.summaryTitle}>Resumen diario</Text>
-          </View>
-          
-          <Text style={styles.summaryLabel}>Calorías</Text>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: '45%', backgroundColor: theme.orange }]} />
-          </View>
-          
-          <View style={styles.macrosContainer}>
-            <View style={styles.macroItem}>
-              <Text style={styles.macroLabel}>Proteínas</Text>
-              <View style={styles.macroBar}>
-                <View style={[styles.macroFill, { width: '60%', backgroundColor: '#3498db' }]} />
-              </View>
-            </View>
-            
-            <View style={styles.macroItem}>
-              <Text style={styles.macroLabel}>Grasa</Text>
-              <View style={styles.macroBar}>
-                <View style={[styles.macroFill, { width: '40%', backgroundColor: '#e74c3c' }]} />
-              </View>
-            </View>
-            
-            <View style={styles.macroItem}>
-              <Text style={styles.macroLabel}>Carbohidratos</Text>
-              <View style={styles.macroBar}>
-                <View style={[styles.macroFill, { width: '50%', backgroundColor: '#2ecc71' }]} />
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* DESAYUNO */}
-        <View style={styles.mealCard}>
-          <View style={styles.mealHeader}>
-            <View style={styles.mealTitleRow}>
-              <View style={styles.checkbox}>
-                <Text style={styles.checkmark}>✓</Text>
-              </View>
-              <View>
-                <Text style={styles.mealTitle}>DESAYUNO</Text>
-                <Text style={styles.mealTime}>8:00 am</Text>
-              </View>
-            </View>
-            <View style={[styles.caloriesBadge, { backgroundColor: theme.red }]}>
-              <Text style={styles.caloriesText}>690 kcal</Text>
-            </View>
-          </View>
-
-          <View style={styles.foodList}>
-            <Text style={styles.foodItem}>• 2 huevos</Text>
-            <Text style={styles.foodItem}>• Tocino</Text>
-          </View>
-
-          <View style={styles.macroValues}>
-            <Text style={styles.macroValue}>P: 19g</Text>
-            <Text style={styles.macroValue}>C: 14g</Text>
-            <Text style={styles.macroValue}>G: 20g</Text>
-          </View>
-
-          <TouchableOpacity style={[styles.addButton, { backgroundColor: theme.orange }]}>
-            <Text style={styles.addButtonIcon}>+</Text>
-            <Text style={styles.addButtonText}>Agregar comida</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Espaciado para el bottom tab */}
-        <View style={{ height: 100 }} />
-      </ScrollView>
+      </Modal>
     </View>
   );
 }
@@ -109,204 +220,110 @@ export default function Scanner() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
   },
-  header: {
+  headerContainer: {
+    paddingTop: 60,
     paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingBottom: 20,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 5,
   },
   subtitle: {
     fontSize: 14,
-    color: '#999999',
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
     marginBottom: 20,
-    borderRadius: 25,
-    overflow: 'hidden',
-    backgroundColor: '#2a2a2a',
-    padding: 4,
   },
-  tabActive: {
+  segmentedControlContainer: {
+    borderRadius: 12,
+    padding: 3,
+  },
+  segmentedControl: {
+    flexDirection: "row",
+    borderRadius: 10,
+  },
+  segment: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 22,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  tabInactive: {
+  activeSegment: {
+    borderRadius: 8,
+  },
+  firstSegment: {
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+  },
+  lastSegment: {
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+  },
+  segmentText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  scanButton: {
+    position: "absolute",
+    bottom: 120,
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowColor: "#FF7E33",
+    shadowOpacity: 0.4,
+  },
+  modalOverlay: {
     flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
   },
-  tabIcon: {
-    fontSize: 16,
-  },
-  tabTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  tabTextInactive: {
-    color: '#999999',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  summaryCard: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 16,
+  menuContainer: {
     padding: 20,
-    marginBottom: 20,
+    paddingBottom: 140,
   },
-  summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
-  },
-  summaryIcon: {
-    fontSize: 20,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: '#999999',
-    marginBottom: 8,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 20,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  macrosContainer: {
-    gap: 12,
-  },
-  macroItem: {
-    gap: 6,
-  },
-  macroLabel: {
-    fontSize: 13,
-    color: '#999999',
-  },
-  macroBar: {
-    height: 6,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  macroFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  mealCard: {
-    backgroundColor: '#2a2a2a',
+  menuContent: {
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    overflow: "hidden",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
-  mealHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+  menuOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
   },
-  mealTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  menuIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
   },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+  menuTextContainer: {
+    flex: 1,
   },
-  checkmark: {
-    fontSize: 16,
-    color: '#000000',
-    fontWeight: 'bold',
+  menuTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    marginBottom: 2,
   },
-  mealTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  mealTime: {
+  menuSubtitle: {
     fontSize: 13,
-    color: '#999999',
-    marginTop: 2,
-  },
-  caloriesBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  caloriesText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  foodList: {
-    marginBottom: 16,
-    gap: 4,
-  },
-  foodItem: {
-    fontSize: 14,
-    color: '#CCCCCC',
-    lineHeight: 22,
-  },
-  macroValues: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 16,
-  },
-  macroValue: {
-    fontSize: 13,
-    color: '#999999',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 25,
-    gap: 8,
-  },
-  addButtonIcon: {
-    fontSize: 20,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
+    color: "#999",
   },
 });

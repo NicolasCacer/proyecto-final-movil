@@ -1,12 +1,15 @@
 import { ThemeContext } from "@/context/ThemeProvider";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
 import React, { useContext, useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface Ejercicio {
@@ -28,6 +31,8 @@ interface DiaRutina {
 
 export default function RutinaView() {
   const themeContext = useContext(ThemeContext);
+  const router = useRouter();
+  
   if (!themeContext) return null;
   const { theme } = themeContext;
 
@@ -152,15 +157,40 @@ export default function RutinaView() {
   ]);
 
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [scaleAnim] = useState(new Animated.Value(0));
 
   const toggleDay = (dayId: string) => {
     setExpandedDay(expandedDay === dayId ? null : dayId);
   };
 
-  const handleCreateRoutine = () => {
-    console.log("Crear nueva rutina");
-    // Aquí puedes navegar a la pantalla de crear rutina
-    // router.push('/create-routine');
+  const handleOpenMenu = () => {
+    setMenuVisible(true);
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 7,
+    }).start();
+  };
+
+  const handleCloseMenu = () => {
+    Animated.timing(scaleAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setMenuVisible(false));
+  };
+
+  const handleAIRecommendation = () => {
+    handleCloseMenu();
+    console.log("Obtener recomendación de IA");
+    // Aquí irá la lógica para la recomendación de IA
+  };
+
+  const handleCreateCustom = () => {
+    handleCloseMenu();
+    router.push("/create-routine");
   };
 
   return (
@@ -341,11 +371,89 @@ export default function RutinaView() {
       {/* Botón flotante (FAB) */}
       <TouchableOpacity
         style={[styles.fabButton, { backgroundColor: theme.orange }]}
-        onPress={handleCreateRoutine}
+        onPress={handleOpenMenu}
         activeOpacity={0.8}
       >
         <Ionicons name="add" size={28} color="#fff" />
       </TouchableOpacity>
+
+      {/* Modal del menú */}
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="none"
+        onRequestClose={handleCloseMenu}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={handleCloseMenu}
+        >
+          <View style={styles.menuContainer}>
+            <Animated.View
+              style={[
+                styles.menuContent,
+                { backgroundColor: theme.tabsBack },
+                {
+                  transform: [{ scale: scaleAnim }],
+                  opacity: scaleAnim,
+                },
+              ]}
+            >
+              {/* Opción de IA */}
+              <TouchableOpacity
+                style={[
+                  styles.menuOption,
+                  { borderBottomColor: "rgba(255,255,255,0.1)" },
+                ]}
+                onPress={handleAIRecommendation}
+              >
+                <View
+                  style={[
+                    styles.menuIconCircle,
+                    { backgroundColor: theme.background },
+                  ]}
+                >
+                  <Ionicons name="sparkles" size={24} color={theme.orange} />
+                </View>
+                <View style={styles.menuTextContainer}>
+                  <Text style={[styles.menuTitle, { color: theme.text }]}>
+                    Recomendación IA
+                  </Text>
+                  <Text style={styles.menuSubtitle}>
+                    Deja que la IA cree tu rutina
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#666" />
+              </TouchableOpacity>
+
+              {/* Opción manual */}
+              <TouchableOpacity
+                style={styles.menuOption}
+                onPress={handleCreateCustom}
+              >
+                <View
+                  style={[
+                    styles.menuIconCircle,
+                    { backgroundColor: theme.background },
+                  ]}
+                >
+                  <Ionicons name="create" size={24} color={theme.orange} />
+                </View>
+                <View style={styles.menuTextContainer}>
+                  <Text style={[styles.menuTitle, { color: theme.text }]}>
+                    Crear Rutina Personalizada
+                  </Text>
+                  <Text style={styles.menuSubtitle}>
+                    Define tus propios ejercicios
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#666" />
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </>
   );
 }
@@ -489,10 +597,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#999",
   },
-  // Estilos del FAB
   fabButton: {
     position: "absolute",
-    bottom: 110, // Por encima del tab bar
+    bottom: 120,
     right: 20,
     width: 60,
     height: 60,
@@ -504,6 +611,51 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-   
+    shadowColor: "#FF7E33",
+    shadowOpacity: 0.4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  menuContainer: {
+    padding: 20,
+    paddingBottom: 200,
+  },
+  menuContent: {
+    borderRadius: 16,
+    overflow: "hidden",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  menuOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  menuIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  menuTextContainer: {
+    flex: 1,
+  },
+  menuTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  menuSubtitle: {
+    fontSize: 13,
+    color: "#999",
   },
 });

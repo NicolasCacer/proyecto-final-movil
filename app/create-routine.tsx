@@ -1,0 +1,616 @@
+import { ThemeContext } from "@/context/ThemeProvider";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { Picker } from "@react-native-picker/picker";
+import { useRouter } from "expo-router";
+import React, { useContext, useState } from "react";
+import {
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+interface Ejercicio {
+  id: string;
+  nombre: string;
+  series: string;
+  repeticiones: string;
+  peso: string;
+  musculo: string;
+}
+
+export default function CreateRoutine() {
+  const themeContext = useContext(ThemeContext);
+  const router = useRouter();
+
+  const [nombreRutina, setNombreRutina] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [ejercicios, setEjercicios] = useState<Ejercicio[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  // Estado para nuevo ejercicio
+  const [nuevoEjercicio, setNuevoEjercicio] = useState({
+    nombre: "",
+    series: "",
+    repeticiones: "",
+    peso: "",
+    musculo: "",
+  });
+
+  if (!themeContext) return null;
+  const { theme } = themeContext;
+
+  const gruposMusculares = [
+    "Pecho",
+    "Espalda",
+    "Piernas",
+    "Hombros",
+    "Brazos",
+    "Abdomen",
+    "Cardio",
+  ];
+
+  const handleAddEjercicio = () => {
+    if (!nuevoEjercicio.nombre || !nuevoEjercicio.series || !nuevoEjercicio.repeticiones) {
+      Alert.alert("Error", "Por favor completa al menos nombre, series y repeticiones");
+      return;
+    }
+
+    const ejercicio: Ejercicio = {
+      id: Date.now().toString(),
+      ...nuevoEjercicio,
+    };
+
+    setEjercicios([...ejercicios, ejercicio]);
+    setNuevoEjercicio({
+      nombre: "",
+      series: "",
+      repeticiones: "",
+      peso: "",
+      musculo: "",
+    });
+    setModalVisible(false);
+  };
+
+  const handleRemoveEjercicio = (id: string) => {
+    setEjercicios(ejercicios.filter((e) => e.id !== id));
+  };
+
+  const handleSaveRoutine = () => {
+    if (!nombreRutina) {
+      Alert.alert("Error", "Por favor ingresa un nombre para la rutina");
+      return;
+    }
+
+    if (ejercicios.length === 0) {
+      Alert.alert("Error", "Agrega al menos un ejercicio");
+      return;
+    }
+
+    console.log("Guardar rutina:", {
+      nombreRutina,
+      descripcion,
+      ejercicios,
+    });
+
+    Alert.alert("Éxito", "Rutina creada correctamente", [
+      {
+        text: "OK",
+        onPress: () => router.back(),
+      },
+    ]);
+  };
+
+  return (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.background }]}
+    >
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="chevron-back" size={24} color={theme.text} />
+          <Text style={[styles.backText, { color: theme.text }]}>Volver</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.saveButton, { backgroundColor: theme.orange }]}
+          onPress={handleSaveRoutine}
+        >
+          <Text style={styles.saveButtonText}>Guardar</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <Text style={[styles.title, { color: theme.text }]}>
+          Nueva Rutina
+        </Text>
+
+        {/* Nombre de la rutina */}
+        <View style={styles.section}>
+          <Text style={[styles.label, { color: theme.text }]}>
+            Nombre de la rutina
+          </Text>
+          <View style={[styles.input, { borderColor: "#444" }]}>
+            <Ionicons name="fitness" size={20} color={theme.text} />
+            <TextInput
+              style={[styles.textInput, { color: theme.text }]}
+              placeholder="Ej: Rutina de Fuerza"
+              placeholderTextColor="#666"
+              value={nombreRutina}
+              onChangeText={setNombreRutina}
+            />
+          </View>
+        </View>
+
+        {/* Descripción */}
+        <View style={styles.section}>
+          <Text style={[styles.label, { color: theme.text }]}>
+            Descripción (opcional)
+          </Text>
+          <View
+            style={[
+              styles.textareaContainer,
+              { borderColor: "#444", backgroundColor: theme.tabsBack },
+            ]}
+          >
+            <TextInput
+              style={[styles.textarea, { color: theme.text }]}
+              placeholder="Describe tu rutina..."
+              placeholderTextColor="#666"
+              value={descripcion}
+              onChangeText={setDescripcion}
+              multiline
+              numberOfLines={4}
+            />
+          </View>
+        </View>
+
+        {/* Lista de ejercicios */}
+        <View style={styles.section}>
+          <View style={styles.ejerciciosHeader}>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Ejercicios ({ejercicios.length})
+            </Text>
+            <TouchableOpacity
+              style={[styles.addButton, { backgroundColor: theme.orange }]}
+              onPress={() => setModalVisible(true)}
+            >
+              <Ionicons name="add" size={20} color="#fff" />
+              <Text style={styles.addButtonText}>Agregar</Text>
+            </TouchableOpacity>
+          </View>
+
+          {ejercicios.length === 0 ? (
+            <View
+              style={[
+                styles.emptyContainer,
+                { backgroundColor: theme.tabsBack },
+              ]}
+            >
+              <Ionicons name="barbell-outline" size={48} color="#666" />
+              <Text style={styles.emptyText}>
+                No hay ejercicios agregados
+              </Text>
+              <Text style={styles.emptySubtext}>
+                Toca "Agregar" para comenzar
+              </Text>
+            </View>
+          ) : (
+            ejercicios.map((ejercicio) => (
+              <View
+                key={ejercicio.id}
+                style={[
+                  styles.ejercicioCard,
+                  { backgroundColor: theme.tabsBack },
+                ]}
+              >
+                <View style={styles.ejercicioContent}>
+                  <View style={styles.ejercicioLeft}>
+                    <Text
+                      style={[styles.ejercicioNombre, { color: theme.text }]}
+                    >
+                      {ejercicio.nombre}
+                    </Text>
+                    <View style={styles.ejercicioDetails}>
+                      <Text style={styles.ejercicioDetail}>
+                        {ejercicio.series} series
+                      </Text>
+                      <Text style={styles.ejercicioDetail}> • </Text>
+                      <Text style={styles.ejercicioDetail}>
+                        {ejercicio.repeticiones} reps
+                      </Text>
+                      {ejercicio.peso && (
+                        <>
+                          <Text style={styles.ejercicioDetail}> • </Text>
+                          <Text style={styles.ejercicioDetail}>
+                            {ejercicio.peso}
+                          </Text>
+                        </>
+                      )}
+                    </View>
+                    {ejercicio.musculo && (
+                      <View style={styles.musculoBadge}>
+                        <Text style={styles.musculoText}>
+                          {ejercicio.musculo}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => handleRemoveEjercicio(ejercicio.id)}
+                  >
+                    <Ionicons name="trash-outline" size={20} color={theme.red} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Modal para agregar ejercicio */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.background },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>
+                Agregar Ejercicio
+              </Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Ionicons name="close" size={24} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalScroll}
+            >
+              {/* Nombre del ejercicio */}
+              <View style={styles.modalSection}>
+                <Text style={[styles.modalLabel, { color: theme.text }]}>
+                  Nombre del ejercicio *
+                </Text>
+                <View style={[styles.input, { borderColor: "#444" }]}>
+                  <Ionicons name="barbell" size={20} color={theme.text} />
+                  <TextInput
+                    style={[styles.textInput, { color: theme.text }]}
+                    placeholder="Ej: Press de banca"
+                    placeholderTextColor="#666"
+                    value={nuevoEjercicio.nombre}
+                    onChangeText={(text) =>
+                      setNuevoEjercicio({ ...nuevoEjercicio, nombre: text })
+                    }
+                  />
+                </View>
+              </View>
+
+              {/* Series y Repeticiones */}
+              <View style={styles.modalRow}>
+                <View style={[styles.modalSection, { flex: 1, marginRight: 8 }]}>
+                  <Text style={[styles.modalLabel, { color: theme.text }]}>
+                    Series *
+                  </Text>
+                  <View style={[styles.input, { borderColor: "#444" }]}>
+                    <TextInput
+                      style={[styles.textInput, { color: theme.text }]}
+                      placeholder="Ej: 4"
+                      placeholderTextColor="#666"
+                      keyboardType="numeric"
+                      value={nuevoEjercicio.series}
+                      onChangeText={(text) =>
+                        setNuevoEjercicio({ ...nuevoEjercicio, series: text })
+                      }
+                    />
+                  </View>
+                </View>
+
+                <View style={[styles.modalSection, { flex: 1, marginLeft: 8 }]}>
+                  <Text style={[styles.modalLabel, { color: theme.text }]}>
+                    Repeticiones *
+                  </Text>
+                  <View style={[styles.input, { borderColor: "#444" }]}>
+                    <TextInput
+                      style={[styles.textInput, { color: theme.text }]}
+                      placeholder="Ej: 8-10"
+                      placeholderTextColor="#666"
+                      value={nuevoEjercicio.repeticiones}
+                      onChangeText={(text) =>
+                        setNuevoEjercicio({
+                          ...nuevoEjercicio,
+                          repeticiones: text,
+                        })
+                      }
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {/* Peso */}
+              <View style={styles.modalSection}>
+                <Text style={[styles.modalLabel, { color: theme.text }]}>
+                  Peso (opcional)
+                </Text>
+                <View style={[styles.input, { borderColor: "#444" }]}>
+                  <Ionicons name="speedometer" size={20} color={theme.text} />
+                  <TextInput
+                    style={[styles.textInput, { color: theme.text }]}
+                    placeholder="Ej: 60kg"
+                    placeholderTextColor="#666"
+                    value={nuevoEjercicio.peso}
+                    onChangeText={(text) =>
+                      setNuevoEjercicio({ ...nuevoEjercicio, peso: text })
+                    }
+                  />
+                </View>
+              </View>
+
+              {/* Grupo muscular */}
+              <View style={styles.modalSection}>
+                <Text style={[styles.modalLabel, { color: theme.text }]}>
+                  Grupo muscular
+                </Text>
+                <View
+                  style={[
+                    styles.pickerContainer,
+                    { borderColor: "#444", backgroundColor: theme.tabsBack },
+                  ]}
+                >
+                  <Picker
+                    selectedValue={nuevoEjercicio.musculo}
+                    onValueChange={(value) =>
+                      setNuevoEjercicio({ ...nuevoEjercicio, musculo: value })
+                    }
+                    style={{ color: theme.text }}
+                    dropdownIconColor={theme.text}
+                  >
+                    <Picker.Item label="Selecciona un grupo" value="" />
+                    {gruposMusculares.map((grupo) => (
+                      <Picker.Item key={grupo} label={grupo} value={grupo} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+
+              {/* Botón agregar */}
+              <TouchableOpacity
+                style={[
+                  styles.modalAddButton,
+                  { backgroundColor: theme.orange },
+                ]}
+                onPress={handleAddEjercicio}
+              >
+                <Text style={styles.modalAddButtonText}>
+                  Agregar Ejercicio
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  backText: {
+    fontSize: 17,
+    marginLeft: 4,
+  },
+  saveButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 24,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  input: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+  },
+  textareaContainer: {
+    borderWidth: 1.5,
+    borderRadius: 12,
+    padding: 16,
+    minHeight: 100,
+  },
+  textarea: {
+    fontSize: 16,
+    textAlignVertical: "top",
+  },
+  ejerciciosHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  addButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  emptyContainer: {
+    padding: 40,
+    borderRadius: 16,
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#999",
+    marginTop: 16,
+    fontWeight: "500",
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 4,
+  },
+  ejercicioCard: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  ejercicioContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  ejercicioLeft: {
+    flex: 1,
+  },
+  ejercicioNombre: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 6,
+  },
+  ejercicioDetails: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  ejercicioDetail: {
+    fontSize: 13,
+    color: "#999",
+  },
+  musculoBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 126, 51, 0.2)",
+  },
+  musculoText: {
+    fontSize: 12,
+    color: "#FF7E33",
+    fontWeight: "500",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "90%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  modalScroll: {
+    padding: 20,
+  },
+  modalSection: {
+    marginBottom: 20,
+  },
+  modalRow: {
+    flexDirection: "row",
+  },
+  modalLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  pickerContainer: {
+    borderWidth: 1.5,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  modalAddButton: {
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  modalAddButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+});
