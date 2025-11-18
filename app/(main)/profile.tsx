@@ -1,6 +1,8 @@
+import { AuthContext } from "@/context/AuthContext";
 import { ThemeContext } from "@/context/ThemeProvider";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React, { useContext, useState } from "react";
 import {
   Image,
@@ -16,10 +18,12 @@ import {
 export default function Profile() {
   const themeContext = useContext(ThemeContext);
   const [activeTab, setActiveTab] = useState("datos");
+  const authContext = useContext(AuthContext);
+  const router = useRouter();
   const [formData, setFormData] = useState({
-    nombre: "Juan",
-    apellido: "Pérez",
-    correo: "juan.perez@example.com",
+    nombre: authContext.user?.name || "",
+    apellido: authContext.user?.lastname || "",
+    correo: authContext.user?.email || "",
     contraseña: "••••••••",
   });
 
@@ -105,10 +109,7 @@ export default function Profile() {
                 Datos personales
               </Text>
               <TouchableOpacity
-                style={[
-                  styles.editButton,
-                  { backgroundColor: theme.tabsBack },
-                ]}
+                style={[styles.editButton, { backgroundColor: theme.tabsBack }]}
               >
                 <Ionicons name="pencil" size={20} color={theme.text} />
               </TouchableOpacity>
@@ -118,7 +119,7 @@ export default function Profile() {
             <View style={styles.imageContainer}>
               <Image
                 source={{
-                  uri: "https://s1.elespanol.com/2022/06/03/actualidad/677442473_224809016_1706x1511.jpg",
+                  uri: "https://img.freepik.com/premium-vector/default-avatar-profile-icon-social-media-user-image-gray-avatar-icon-blank-profile-silhouette-vector-illustration_561158-3383.jpg?semt=ais_hybrid&w=740&q=80",
                 }}
                 style={[styles.profileImage, { borderColor: theme.orange }]}
               />
@@ -451,11 +452,7 @@ export default function Profile() {
                     { backgroundColor: theme.background },
                   ]}
                 >
-                  <Ionicons
-                    name="help-circle"
-                    size={24}
-                    color={theme.orange}
-                  />
+                  <Ionicons name="help-circle" size={24} color={theme.orange} />
                 </View>
                 <View style={styles.configTextContainer}>
                   <Text style={[styles.configTitle, { color: theme.text }]}>
@@ -468,7 +465,13 @@ export default function Profile() {
             </TouchableOpacity>
 
             {/* Cerrar Sesión */}
-            <TouchableOpacity style={[styles.configItem, styles.logoutItem]}>
+            <TouchableOpacity
+              style={[styles.configItem, styles.logoutItem]}
+              onPress={async () => {
+                await authContext.logout();
+                router.push("/(auth)/login");
+              }}
+            >
               <View style={styles.configLeft}>
                 <View
                   style={[

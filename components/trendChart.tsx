@@ -12,18 +12,23 @@ export default function TrendChart({ data }: TrendChartProps) {
   const dias = Object.keys(data);
   const valores = Object.values(data);
 
-  const max = Math.max(...valores, 1); // evita división por 0
+  const max = Math.max(...valores, 1);
 
   const themeContext = useContext(ThemeContext);
   if (!themeContext) return null;
   const { theme } = themeContext;
 
-  const BAR_WIDTH = 30; // ancho fijo para cada barra y su letra
-  const GAP = 10; // espacio entre barras
+  const BAR_WIDTH = 30;
+  const GAP = 10;
+
+  // Ahora el slot se calcula con ESPACIO incluido
+  const SLOT_WIDTH = BAR_WIDTH + GAP;
+
+  const contentWidth = dias.length * SLOT_WIDTH;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.tabsBack }]}>
-      {/* ROW 1: Título de racha */}
+      {/* ROW 1 */}
       <AppText style={styles.titulo}>
         <AppText style={styles.bold}>
           {dias.filter((d) => data[d] > 0).length}
@@ -31,72 +36,78 @@ export default function TrendChart({ data }: TrendChartProps) {
         días activos
       </AppText>
 
-      {/* ROW 2: Eje Y + Barras */}
+      {/* ROW 2 */}
       <View style={styles.chartRow}>
-        {/* EJE Y */}
+        {/* Y Axis */}
         <View style={styles.yAxis}>
           <AppText style={styles.yText}>{Math.round(max)}</AppText>
           <AppText style={styles.yText}>{Math.round(max / 2)}</AppText>
           <AppText style={styles.yText}>0</AppText>
         </View>
 
-        {/* BARRAS */}
-        <View style={styles.barsContainer}>
-          {/* Líneas de referencia */}
-          {[1, 0.75, 0.5, 0.25, 0].map((fraction, idx) => (
-            <View
-              key={idx}
-              style={{
-                position: "absolute",
-                top: `${(1 - fraction) * 100}%`,
-                left: 0,
-                right: 0,
-                height: 1,
-                backgroundColor: theme.text + "1A", // línea suave
-              }}
-            />
-          ))}
-
-          {dias.map((d, i) => {
-            const altura = (data[d] / max) * 100;
-            return (
+        {/* Barras */}
+        <View style={{ width: contentWidth }}>
+          <View style={styles.barsContainer}>
+            {/* Líneas guía */}
+            {[1, 0.75, 0.5, 0.25, 0].map((fraction, idx) => (
               <View
-                key={i}
-                style={[
-                  styles.barItem,
-                  { width: BAR_WIDTH, marginHorizontal: GAP / 2 },
-                ]}
-              >
-                <View style={styles.barBase}>
-                  <LinearGradient
-                    colors={[theme.orange, theme.white]}
-                    start={{ x: 0.5, y: 0 }}
-                    end={{ x: 0.5, y: 1 }}
-                    style={[styles.bar, { height: `${altura}%` }]}
-                  />
+                key={idx}
+                style={{
+                  position: "absolute",
+                  top: `${(1 - fraction) * 100}%`,
+                  left: 0,
+                  right: 0,
+                  height: 1,
+                  backgroundColor: theme.text + "1A",
+                }}
+              />
+            ))}
+
+            {/* BARRAS */}
+            {dias.map((d, i) => {
+              const altura = (data[d] / max) * 100;
+
+              return (
+                <View
+                  key={i}
+                  style={{
+                    width: SLOT_WIDTH,
+                    alignItems: "center",
+                  }}
+                >
+                  <View style={styles.barBase}>
+                    <LinearGradient
+                      colors={[theme.orange, theme.white]}
+                      start={{ x: 0.5, y: 0 }}
+                      end={{ x: 0.5, y: 1 }}
+                      style={[styles.bar, { height: `${altura}%` }]}
+                    />
+                  </View>
                 </View>
-              </View>
-            );
-          })}
+              );
+            })}
+          </View>
         </View>
       </View>
 
-      {/* ROW 3: Kcal + Días */}
+      {/* ROW 3: labels */}
       <View style={styles.labelsRow}>
         <AppText style={styles.kcal}>KCal</AppText>
-        <View style={styles.daysContainer}>
-          {dias.map((d, i) => (
-            <View
-              key={i}
-              style={{
-                width: BAR_WIDTH,
-                marginHorizontal: GAP / 2,
-                alignItems: "center",
-              }}
-            >
-              <AppText style={styles.xLabel}>{d}</AppText>
-            </View>
-          ))}
+
+        <View style={{ width: contentWidth }}>
+          <View style={styles.daysContainer}>
+            {dias.map((d, i) => (
+              <View
+                key={i}
+                style={{
+                  width: SLOT_WIDTH,
+                  alignItems: "center",
+                }}
+              >
+                <AppText style={styles.xLabel}>{d}</AppText>
+              </View>
+            ))}
+          </View>
         </View>
       </View>
     </View>
@@ -126,7 +137,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-end",
     height: 120,
-    width: 31,
+    width: 33,
     marginRight: 16,
   },
   yText: {
@@ -135,11 +146,8 @@ const styles = StyleSheet.create({
   barsContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
-    flex: 1,
-  },
-  barItem: {
-    alignItems: "center",
-    justifyContent: "flex-end",
+    height: 120,
+    position: "relative",
   },
   barBase: {
     width: "100%",
@@ -147,7 +155,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   bar: {
-    width: "100%",
+    width: 30,
     borderRadius: 15,
   },
   labelsRow: {
@@ -157,13 +165,12 @@ const styles = StyleSheet.create({
   },
   kcal: {
     fontSize: 14,
-    width: 31,
-    marginHorizontal: 8.5,
+    width: 33,
+    marginRight: 10,
   },
   daysContainer: {
     flexDirection: "row",
-    flex: 1,
-    justifyContent: "flex-start",
+    alignItems: "center",
   },
   xLabel: {
     fontWeight: "bold",
