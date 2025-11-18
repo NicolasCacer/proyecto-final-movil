@@ -67,7 +67,7 @@ export default function Login() {
   // === Login con validación previa ===
   const handleLogin = async () => {
     if (!email || !password || emailError || passwordError) {
-      Alert.alert("Error", "Por favor corrige los campos inválidos.");
+      Alert.alert("Error", "Por favor corrige los campos vacíos o inválidos.");
       return;
     }
     Keyboard.dismiss();
