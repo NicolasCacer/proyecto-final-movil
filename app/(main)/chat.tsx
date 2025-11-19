@@ -1,4 +1,5 @@
 import { BubbleChat } from "@/components/bubbleChat";
+import { DataContext } from "@/context/DataContext";
 import { ThemeContext } from "@/context/ThemeProvider";
 import { useContext, useEffect, useRef, useState } from "react";
 import {
@@ -19,57 +20,124 @@ import Svg, { Path } from "react-native-svg";
 
 export default function Chat() {
   const themeContext = useContext(ThemeContext);
+  const { messagesAPI } = useContext(DataContext);
   const scrollRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
 
   const [keyboardVisible, setKeyboardVisible] = useState(false);
-
   const [inputText, setInputText] = useState("");
+  const [messages, setMessages] = useState<{ text: string; isUser: boolean }[]>(
+    []
+  );
 
-  const [messages, setMessages] = useState([
-    { text: "Hola, este es un mensaje de ejemplo", isUser: true },
-    { text: "Hola, soy tu asistente virtual 🤖", isUser: false },
-    { text: "¿Puedes ayudarme con una tarea?", isUser: true },
-    { text: "Claro que sí. ¿Qué necesitas saber?", isUser: false },
-    { text: "Estoy integrando un chat en mi aplicación.", isUser: true },
-    {
-      text: "Perfecto, puedo ayudarte con estilos, lógica y estructura 😄",
-      isUser: false,
-    },
-    {
-      text: "Genial, ¿cómo puedo hacer que el teclado no tape los inputs?",
-      isUser: true,
-    },
-    {
-      text: "Puedes envolver tu contenido en KeyboardAvoidingView...",
-      isUser: false,
-    },
-    { text: "¡Listo, ya me funciona! Gracias 🙌", isUser: true },
-    {
-      text: "Me alegra ayudarte. Si quieres puedo mostrarte cómo animar burbujas 💬✨",
-      isUser: false,
-    },
-  ]);
+  // -------------------------------------------
+  // DUMMY de IA (luego solo reemplazas esta función)
+  // -------------------------------------------
+  async function sendToAI(prompt: string): Promise<string> {
+    try {
+      const response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        {
+          method: "POST",
+          headers: {
+            "x-goog-api-key": process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? "",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [{ text: `En menos de 20 palabras responde ${prompt}` }],
+              },
+            ],
+          }),
+        }
+      );
 
-  const handleSend = () => {
+      const data = await response.json();
+
+      const aiText =
+        data?.candidates?.[0]?.content?.parts?.[0]?.text || "No entiendo 🥲";
+
+      return aiText;
+    } catch (err) {
+      console.error("ERROR GEMINI:", err);
+      return "Se produjo un error al hablar con la IA 😵";
+    }
+  }
+
+  // -------------------------------------------
+  // Cargar mensajes desde Supabase
+  // -------------------------------------------
+  useEffect(() => {
+    const loadMessages = async () => {
+      const data = await messagesAPI.getAll();
+      if (!data) return;
+
+      // Convertir el formato de supabase → formato del chat
+      const formatted = data
+        .sort(
+          (a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        )
+        .map((m: any) => ({
+          text: m.message,
+          isUser: m.is_user,
+        }));
+
+      setMessages(formatted);
+
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    };
+
+    loadMessages();
+  }, []);
+
+  // -------------------------------------------
+  // Enviar mensaje
+  // -------------------------------------------
+  const handleSend = async () => {
     if (!inputText.trim()) return;
 
-    setMessages((prev) => [...prev, { text: inputText.trim(), isUser: true }]);
+    const userText = inputText.trim();
     setInputText("");
+
+    // 1. Agregar al chat
+    const userMessage = { text: userText, isUser: true };
+    setMessages((prev) => [...prev, userMessage]);
+
+    // 2. Guardar en Supabase
+    await messagesAPI.create({
+      message: userText,
+      is_user: true,
+    });
+
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 50);
+
+    // 3. Obtiene respuesta del dummy IA
+    const aiResponse = await sendToAI(userText);
+
+    // 4. Agregar al chat
+    const botMessage = { text: aiResponse, isUser: false };
+    setMessages((prev) => [...prev, botMessage]);
+
+    // 5. Guardar respuesta en supabase
+    await messagesAPI.create({
+      message: aiResponse,
+      is_user: false,
+    });
 
     setTimeout(() => {
       scrollRef.current?.scrollToEnd({ animated: true });
     }, 50);
   };
 
-  // Scroll al entrar a la screen
-  useEffect(() => {
-    setTimeout(() => {
-      scrollRef.current?.scrollToEnd({ animated: false });
-    }, 200);
-  }, []);
-
-  // Detectar teclado y scrollear
+  // -------------------------------------------
+  // Mover scroll al abrir el teclado
+  // -------------------------------------------
   useEffect(() => {
     const showSub = Keyboard.addListener("keyboardDidShow", () => {
       setKeyboardVisible(true);
@@ -107,18 +175,14 @@ export default function Chat() {
           onContentSizeChange={() =>
             scrollRef.current?.scrollToEnd({ animated: true })
           }
-          style={{
-            flex: 1,
-            width: "100%",
-            paddingHorizontal: 8,
-          }}
+          style={{ flex: 1, width: "100%", paddingHorizontal: 8 }}
         >
           {messages.map((msg, i) => (
             <BubbleChat key={i} text={msg.text} isUser={msg.isUser} />
           ))}
         </ScrollView>
 
-        {/* Barra inferior */}
+        {/* BARRA INFERIOR */}
         <View
           style={{
             height: 70,
@@ -145,6 +209,7 @@ export default function Chat() {
               borderRadius: 100,
             }}
           />
+
           {inputText.trim().length > 0 && (
             <TouchableOpacity
               onPress={handleSend}
