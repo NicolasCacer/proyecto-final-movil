@@ -1,5 +1,6 @@
-import React, { createContext, useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { supabase } from "../utils/supabase";
+import { AuthContext } from "./AuthContext";
 
 // ----------------------------------------------
 // Tipo para el CRUD genérico
@@ -38,13 +39,21 @@ export const DataContext = createContext<DataContextType>(
 // ----------------------------------------------
 export const DataProvider = ({ children }: any) => {
   const [data, setData] = useState({});
+  const { user } = useContext(AuthContext); // <<< OBTENER UUID DEL USUARIO
+  const userId = user?.id ?? null;
 
   // -------------------------------------------
   // Helper CRUD reutilizable
   // -------------------------------------------
   const createCRUD = (table: string): CRUD => ({
     getAll: async () => {
-      const { data, error } = await supabase.from(table).select("*");
+      const query = supabase.from(table).select("*");
+
+      // Filtrar por usuario si la tabla lo tiene
+      if (userId) query.eq("user_id", userId);
+
+      const { data, error } = await query;
+
       if (error) {
         console.error(`Error getting ${table}:`, error.message);
         return null;
@@ -53,11 +62,11 @@ export const DataProvider = ({ children }: any) => {
     },
 
     getById: async (id: string) => {
-      const { data, error } = await supabase
-        .from(table)
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
+      const query = supabase.from(table).select("*").eq("id", id);
+
+      if (userId) query.eq("user_id", userId);
+
+      const { data, error } = await query.maybeSingle();
 
       if (error) {
         console.error(`Error getting ${table} by id:`, error.message);
@@ -67,7 +76,10 @@ export const DataProvider = ({ children }: any) => {
     },
 
     create: async (payload: any) => {
-      const { error } = await supabase.from(table).insert(payload);
+      const finalPayload = userId ? { ...payload, user_id: userId } : payload;
+
+      const { error } = await supabase.from(table).insert(finalPayload);
+
       if (error) {
         console.error(`Error inserting ${table}:`, error.message);
         return false;
@@ -76,7 +88,12 @@ export const DataProvider = ({ children }: any) => {
     },
 
     update: async (id: string, payload: any) => {
-      const { error } = await supabase.from(table).update(payload).eq("id", id);
+      const query = supabase.from(table).update(payload).eq("id", id);
+
+      if (userId) query.eq("user_id", userId);
+
+      const { error } = await query;
+
       if (error) {
         console.error(`Error updating ${table}:`, error.message);
         return false;
@@ -85,7 +102,12 @@ export const DataProvider = ({ children }: any) => {
     },
 
     delete: async (id: string) => {
-      const { error } = await supabase.from(table).delete().eq("id", id);
+      const query = supabase.from(table).delete().eq("id", id);
+
+      if (userId) query.eq("user_id", userId);
+
+      const { error } = await query;
+
       if (error) {
         console.error(`Error deleting ${table}:`, error.message);
         return false;

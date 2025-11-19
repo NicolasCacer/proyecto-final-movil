@@ -19,6 +19,23 @@ export default function DiarioView({
   metaCalorias,
   metaProteina,
 }: DiarioViewProps) {
+  // Filtrar alimentos para mostrar SOLO los del día de hoy
+  // Normaliza cualquier fecha a YYYY-MM-DD en la zona local
+  const toLocalYMD = (d: string | Date) => {
+    const dt = new Date(d);
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, "0");
+    const day = String(dt.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
+  const hoyLocal = toLocalYMD(new Date());
+
+  const registrosHoy = registros.map((r) => ({
+    ...r,
+    alimentos: r.alimentos.filter((a) => toLocalYMD(a.fecha) === hoyLocal),
+  }));
+
   const themeContext = useContext(ThemeContext);
   if (!themeContext) return null;
   const { theme } = themeContext;
@@ -37,7 +54,10 @@ export default function DiarioView({
   const totalGrasas = registros.reduce(
     (acc, comida) =>
       acc +
-      comida.alimentos.reduce((sum, alimento) => sum + (alimento.grasas || 0), 0),
+      comida.alimentos.reduce(
+        (sum, alimento) => sum + (alimento.grasas || 0),
+        0
+      ),
     0
   );
 
@@ -127,7 +147,7 @@ export default function DiarioView({
         Comidas de Hoy
       </Text>
 
-      {registros.map((registro) => {
+      {registrosHoy.map((registro) => {
         const totalCaloriasComida = registro.alimentos.reduce(
           (sum, alimento) => sum + alimento.calorias,
           0
@@ -229,7 +249,9 @@ export default function DiarioView({
                     >
                       {alimento.nombre}
                     </Text>
-                    <Text style={[styles.alimentoCalorias, { color: theme.orange }]}>
+                    <Text
+                      style={[styles.alimentoCalorias, { color: theme.orange }]}
+                    >
                       {alimento.calorias} kcal
                     </Text>
                   </View>
