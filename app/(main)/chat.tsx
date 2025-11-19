@@ -92,6 +92,7 @@ export default function Chat() {
     };
 
     loadMessages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // -------------------------------------------
