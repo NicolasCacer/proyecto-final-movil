@@ -1,27 +1,24 @@
+import { DataContext } from "@/context/DataContext";
 import { ThemeContext } from "@/context/ThemeProvider";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
-import React, { useContext, useState } from "react";
-import {
-  Alert,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import React, { useContext, useRef, useState } from "react";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Ionicons from "@expo/vector-icons/Ionicons";
 
 export default function ScanBarcode() {
   const router = useRouter();
+  const scanningRef = useRef(false);
   const themeContext = useContext(ThemeContext);
+  const { productsAPI } = useContext(DataContext);
+
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
 
   if (!themeContext) return null;
   const { theme } = themeContext;
 
-  // Si no tenemos permisos aún
   if (!permission) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -32,7 +29,6 @@ export default function ScanBarcode() {
     );
   }
 
-  // Si no hay permisos concedidos
   if (!permission.granted) {
     return (
       <SafeAreaView
@@ -66,47 +62,42 @@ export default function ScanBarcode() {
   }
 
   const handleBarcodeScanned = ({ type, data }: any) => {
+    if (scanningRef.current) return;
+
+    scanningRef.current = true;
     setScanned(true);
-    
-    // Aquí puedes hacer una llamada a una API para buscar el producto
-    // Por ejemplo: OpenFoodFacts API
-    console.log(`Código escaneado: ${data} (Tipo: ${type})`);
-    
-    Alert.alert(
-      "Código Escaneado",
-      `Código de barras: ${data}`,
-      [
-        {
-          text: "Buscar Producto",
-          onPress: () => {
-            // Aquí irá la lógica para buscar el producto
-            searchProduct(data);
-          },
+
+    console.log(`Código escaneado: ${data}`);
+
+    Alert.alert("Código Escaneado", `Código de barras: ${data}`, [
+      {
+        text: "Buscar Producto",
+        onPress: () => searchProduct(data),
+      },
+      {
+        text: "Escanear Otro",
+        onPress: () => {
+          setScanned(false);
+          scanningRef.current = false;
         },
-        {
-          text: "Escanear Otro",
-          onPress: () => setScanned(false),
-        },
-        {
-          text: "Cancelar",
-          onPress: () => router.back(),
-          style: "cancel",
-        },
-      ]
-    );
+      },
+      {
+        text: "Cancelar",
+        onPress: () => router.back(),
+      },
+    ]);
   };
 
   const searchProduct = async (barcode: string) => {
     try {
-      // Ejemplo usando OpenFoodFacts API
       const response = await fetch(
-        `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`
+        `https://world.openfoodfacts.org/api/v2/product/${barcode}.json?fields=product_name,brands,nutriments`
       );
       const data = await response.json();
 
       if (data.status === 1) {
         const product = data.product;
-        
+
         Alert.alert(
           "Producto Encontrado",
           `${product.product_name || "Sin nombre"}\n\nCalorías: ${
@@ -115,22 +106,41 @@ export default function ScanBarcode() {
           [
             {
               text: "Agregar",
-              onPress: () => {
-                // Navegar a pantalla de agregar con datos prellenados
-                console.log("Agregar producto:", product);
-                router.back();
+              onPress: async () => {
+                const newFood = {
+                  name: product.product_name || "N/A",
+                  brand: product.brands || "N/A",
+                  kcal: product.nutriments?.["energy-kcal_value"] ?? 0,
+                  proteins: product.nutriments?.["proteins_value"] ?? 0,
+                  carbohydrates:
+                    product.nutriments?.["carbohydrates_value"] ?? 0,
+                  fats: product.nutriments?.["fat_value"] ?? 0,
+                };
+
+                const success = await productsAPI.create(newFood);
+
+                if (success) {
+                  Alert.alert("Éxito", "Producto agregado correctamente");
+                  console.log("Nuevo alimento agregado:", newFood);
+                  router.back();
+                } else {
+                  Alert.alert("Error", "No se pudo guardar el alimento");
+                }
               },
             },
             {
               text: "Escanear Otro",
-              onPress: () => setScanned(false),
+              onPress: () => {
+                setScanned(false);
+                scanningRef.current = false;
+              },
             },
           ]
         );
       } else {
         Alert.alert(
           "Producto No Encontrado",
-          "No se encontró información para este código de barras. ¿Deseas agregarlo manualmente?",
+          "No se encontró información para este código. ¿Deseas agregarlo manualmente?",
           [
             {
               text: "Agregar Manualmente",
@@ -138,28 +148,20 @@ export default function ScanBarcode() {
             },
             {
               text: "Escanear Otro",
-              onPress: () => setScanned(false),
+              onPress: () => {
+                setScanned(false);
+                scanningRef.current = false;
+              },
             },
           ]
         );
       }
     } catch (error) {
       console.error("Error al buscar producto:", error);
-      Alert.alert(
-        "Error",
-        "No se pudo buscar el producto. Verifica tu conexión a internet.",
-        [
-          {
-            text: "Reintentar",
-            onPress: () => searchProduct(barcode),
-          },
-          {
-            text: "Cancelar",
-            onPress: () => setScanned(false),
-            style: "cancel",
-          },
-        ]
-      );
+      Alert.alert("Error", "No se pudo buscar el producto.", [
+        { text: "Reintentar", onPress: () => searchProduct(barcode) },
+        { text: "Cancelar", style: "cancel" },
+      ]);
     }
   };
 
@@ -167,7 +169,6 @@ export default function ScanBarcode() {
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.background }]}
     >
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -179,12 +180,12 @@ export default function ScanBarcode() {
         <View style={{ width: 28 }} />
       </View>
 
-      {/* Cámara */}
       <View style={styles.cameraContainer}>
         <CameraView
           style={styles.camera}
+          zoom={0.25}
           facing="back"
-          onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+          onBarcodeScanned={scanned ? undefined : handleBarcodeScanned} // ← aquí está la magia
           barcodeScannerSettings={{
             barcodeTypes: [
               "ean13",
@@ -198,19 +199,16 @@ export default function ScanBarcode() {
           }}
         />
 
-        {/* Overlay con marco de escaneo */}
         <View style={styles.overlay}>
           <View style={styles.topOverlay} />
           <View style={styles.middleRow}>
             <View style={styles.sideOverlay} />
             <View style={styles.scanArea}>
-              {/* Esquinas del marco */}
               <View style={[styles.corner, styles.topLeft]} />
               <View style={[styles.corner, styles.topRight]} />
               <View style={[styles.corner, styles.bottomLeft]} />
               <View style={[styles.corner, styles.bottomRight]} />
-              
-              {/* Línea de escaneo animada */}
+
               {!scanned && <View style={styles.scanLine} />}
             </View>
             <View style={styles.sideOverlay} />
@@ -219,9 +217,7 @@ export default function ScanBarcode() {
             <View style={styles.instructionsContainer}>
               <Ionicons name="scan" size={32} color="#fff" />
               <Text style={styles.instructionsText}>
-                {scanned
-                  ? "Código escaneado"
-                  : "Apunta al código de barras"}
+                {scanned ? "Código escaneado" : "Apunta al código de barras"}
               </Text>
               <Text style={styles.instructionsSubtext}>
                 Centra el código en el marco
@@ -231,11 +227,14 @@ export default function ScanBarcode() {
         </View>
       </View>
 
-      {/* Botón para escanear manualmente si está bloqueado */}
       {scanned && (
         <TouchableOpacity
           style={[styles.rescanButton, { backgroundColor: theme.orange }]}
-          onPress={() => setScanned(false)}
+          onPress={() => {
+            setScanned(false);
+            scanningRef.current = false;
+            // ❌ NO REMOUNT
+          }}
         >
           <Ionicons name="refresh" size={24} color="#fff" />
           <Text style={styles.rescanButtonText}>Escanear Otro</Text>

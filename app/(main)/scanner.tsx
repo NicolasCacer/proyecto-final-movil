@@ -56,12 +56,12 @@ export default function Scanner() {
 
   const handleUseCamera = () => {
     handleCloseMenu();
-    router.push("/scan-barcode");
+    router.push("/(modals)/scan-barcode");
   };
 
   const handleManualEntry = () => {
     handleCloseMenu();
-    router.push("/add-food");
+    router.push("/(modals)/add-food");
   };
 
   return (
@@ -279,8 +279,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    shadowColor: "#FF7E33",
-    shadowOpacity: 0.4,
   },
   modalOverlay: {
     flex: 1,

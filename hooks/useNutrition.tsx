@@ -3,7 +3,7 @@ import { useState } from "react";
 
 export const useNutrition = () => {
   // Datos de ejemplo para el diario
-  const [registrosDiarios] = useState<RegistroComida[]>([
+  const [registrosDiarios, setRegistrosDiarios] = useState<RegistroComida[]>([
     {
       id: "1",
       comida: "Desayuno",
@@ -89,7 +89,12 @@ export const useNutrition = () => {
     año: 2024,
     dias: [
       { nombre: "Lunes", fecha: "2024-01-15", calorias: 2100, cumplido: true },
-      { nombre: "Martes", fecha: "2024-01-16", calorias: 3000, cumplido: false },
+      {
+        nombre: "Martes",
+        fecha: "2024-01-16",
+        calorias: 3000,
+        cumplido: false,
+      },
       {
         nombre: "Miércoles",
         fecha: "2024-01-17",
@@ -97,11 +102,57 @@ export const useNutrition = () => {
         cumplido: false,
       },
       { nombre: "Jueves", fecha: "2024-01-18", calorias: 2200, cumplido: true },
-      { nombre: "Viernes", fecha: "2024-01-19", calorias: 1800, cumplido: true },
-      { nombre: "Sábado", fecha: "2024-01-20", calorias: 2400, cumplido: false },
-      { nombre: "Domingo", fecha: "2024-01-21", calorias: 2000, cumplido: true },
+      {
+        nombre: "Viernes",
+        fecha: "2024-01-19",
+        calorias: 1800,
+        cumplido: true,
+      },
+      {
+        nombre: "Sábado",
+        fecha: "2024-01-20",
+        calorias: 2400,
+        cumplido: false,
+      },
+      {
+        nombre: "Domingo",
+        fecha: "2024-01-21",
+        calorias: 2000,
+        cumplido: true,
+      },
     ],
   });
+
+  // -----------------------------------------------------
+  //  NUEVO: Convierte el JSON de la API al formato alimento
+  // -----------------------------------------------------
+  const convertirProductoAAlimento = (product: any) => {
+    const nutr = product.nutriments || {};
+
+    return {
+      nombre: product.product_name || "Producto sin nombre",
+      calorias: nutr["energy-kcal_100g"] || 0,
+      proteina: nutr["proteins_100g"] || 0,
+      carbohidratos: nutr["carbohydrates_100g"] || 0,
+      grasas: nutr["fat_100g"] || 0,
+    };
+  };
+
+  // -----------------------------------------------------
+  // NUEVO: Agrega un alimento al último registro (ej: Cena)
+  // -----------------------------------------------------
+  const agregarProducto = (product: any) => {
+    const alimento = convertirProductoAAlimento(product);
+
+    setRegistrosDiarios((prev) => {
+      const copia = [...prev];
+      const ultimo = copia[copia.length - 1];
+
+      ultimo.alimentos.push(alimento);
+
+      return copia;
+    });
+  };
 
   const calcularTotales = (registros: RegistroComida[]) => {
     const totalCalorias = registros.reduce(
@@ -124,5 +175,8 @@ export const useNutrition = () => {
     registrosDiarios,
     resumenSemanal,
     calcularTotales,
+
+    // NUEVO
+    agregarProducto,
   };
 };
