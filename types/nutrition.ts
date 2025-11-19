@@ -4,6 +4,7 @@ export interface Alimento {
   proteina: number;
   carbohidratos?: number;
   grasas?: number;
+  fecha: string;
 }
 
 export interface RegistroComida {
@@ -11,6 +12,7 @@ export interface RegistroComida {
   comida: "Desayuno" | "Almuerzo" | "Merienda" | "Cena";
   hora: string;
   alimentos: Alimento[];
+  fecha?: string;
 }
 
 export interface ResumenDia {

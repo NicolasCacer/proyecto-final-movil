@@ -47,25 +47,26 @@ export const useNutrition = () => {
       proteina: Number(p.proteins || 0),
       carbohidratos: Number(p.carbohydrates || 0),
       grasas: Number(p.fats || 0),
+      fecha: p.created_at,
     });
 
     const registros: RegistroComida[] = [
       {
         id: "1",
         comida: "Desayuno",
-        hora: "08:00 AM",
+        hora: "12:00 AM - 11:59 AM",
         alimentos: desayuno.map(mapToAlimento),
       },
       {
         id: "2",
         comida: "Almuerzo",
-        hora: "01:00 PM",
+        hora: "12:00 PM - 5:59 PM",
         alimentos: almuerzo.map(mapToAlimento),
       },
       {
         id: "3",
         comida: "Cena",
-        hora: "07:30 PM",
+        hora: "6:00 PM - 11:59 PM",
         alimentos: cena.map(mapToAlimento),
       },
     ];
@@ -88,6 +89,35 @@ export const useNutrition = () => {
   // 5️⃣ Resumen semanal (solo kcal)
   // ------------------------------------------------
   const generarResumenSemanal = (productos: any[]) => {
+    const hoy = new Date();
+
+    const getISOWeek = (date: Date) => {
+      const tmp = new Date(date.getTime());
+      tmp.setHours(0, 0, 0, 0);
+      tmp.setDate(tmp.getDate() + 3 - ((tmp.getDay() + 6) % 7));
+      const week1 = new Date(tmp.getFullYear(), 0, 4);
+      return (
+        1 +
+        Math.round(
+          ((tmp.getTime() - week1.getTime()) / 86400000 -
+            3 +
+            ((week1.getDay() + 6) % 7)) /
+            7
+        )
+      );
+    };
+
+    const semanaActual = getISOWeek(hoy);
+    const añoActual = hoy.getFullYear();
+
+    // 🔥 CAMBIO MÍNIMO: filtrar aquí
+    const productosSemana = productos.filter((p) => {
+      const fecha = new Date(p.created_at);
+      return (
+        getISOWeek(fecha) === semanaActual && fecha.getFullYear() === añoActual
+      );
+    });
+
     const dias: Record<
       string,
       {
@@ -96,7 +126,7 @@ export const useNutrition = () => {
       }
     > = {};
 
-    productos.forEach((p) => {
+    productosSemana.forEach((p) => {
       const fecha = p.created_at.slice(0, 10);
       const kcal = Number(p.kcal || 0);
 
@@ -109,18 +139,19 @@ export const useNutrition = () => {
     });
 
     const resumen = Object.keys(dias).map((fecha) => ({
-      nombre: new Date(fecha).toLocaleDateString("es-ES", {
+      nombre: new Date(fecha + "T12:00:00").toLocaleDateString("es-ES", {
         weekday: "long",
       }),
+
       fecha,
       calorias: dias[fecha].calorias,
-      comidas: dias[fecha].comidas, // ⬅ AGREGADO
+      comidas: dias[fecha].comidas,
       cumplido: dias[fecha].calorias <= 2200,
     }));
 
     setResumenSemanal({
-      semana: 1,
-      año: new Date().getFullYear(),
+      semana: semanaActual,
+      año: añoActual,
       dias: resumen,
     });
   };

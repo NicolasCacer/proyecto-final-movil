@@ -26,6 +26,24 @@ export default function SemanalView({
     );
   }
 
+  const getWeekRange = (week: number, year: number) => {
+    const simple = new Date(year, 0, 1 + (week - 1) * 7);
+    const dow = simple.getDay();
+    const ISOweekStart = simple;
+    if (dow <= 4) ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+    else ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+
+    const ISOweekEnd = new Date(ISOweekStart);
+    ISOweekEnd.setDate(ISOweekStart.getDate() + 6);
+
+    return { start: ISOweekStart, end: ISOweekEnd };
+  };
+
+  const { start, end } = getWeekRange(
+    resumenSemanal.semana,
+    resumenSemanal.año
+  );
+
   return (
     <ScrollView
       style={styles.container}
@@ -36,7 +54,8 @@ export default function SemanalView({
       <View style={[styles.semanaCard, { backgroundColor: theme.tabsBack }]}>
         <View style={styles.semanaHeader}>
           <Text style={[styles.semanaTitle, { color: theme.text }]}>
-            Semana {resumenSemanal.semana}
+            Semana del {start.getDate()} al {end.getDate()} de{" "}
+            {start.toLocaleDateString("es-ES", { month: "long" })}
           </Text>
         </View>
 
@@ -58,7 +77,13 @@ export default function SemanalView({
               >
                 <View style={styles.diaInfo}>
                   <Text style={[styles.diaNombre, { color: theme.text }]}>
-                    {dia.nombre}
+                    {new Date(dia.fecha)
+                      .toLocaleDateString("es-ES", {
+                        weekday: "long",
+                        day: "numeric",
+                      })
+                      .replace(",", "")
+                      .replace(/^./, (c) => c.toUpperCase())}
                   </Text>
 
                   {/* Comidas reales desde useNutrition */}
