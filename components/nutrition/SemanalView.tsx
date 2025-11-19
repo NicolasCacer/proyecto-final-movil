@@ -17,11 +17,11 @@ export default function SemanalView({
 
   const { theme } = themeContext;
 
-  // ⛔ Previene errores si está cargando
+  //  Previene errores si está cargando
   if (!resumenSemanal || resumenSemanal.dias.length === 0) {
     return (
       <View style={{ padding: 20 }}>
-        <Text style={{ color: theme.text }}>Cargando...</Text>
+        <Text style={{ color: theme.text }}>No hay datos disponibles.</Text>
       </View>
     );
   }
