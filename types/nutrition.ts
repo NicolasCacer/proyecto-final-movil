@@ -30,5 +30,6 @@ export interface ResumenSemana {
     fecha: string;
     calorias: number;
     cumplido: boolean;
+    comidas: any[];
   }[];
 }
