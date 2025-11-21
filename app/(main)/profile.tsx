@@ -1,11 +1,14 @@
 import { AuthContext } from "@/context/AuthContext";
+import { DataContext } from "@/context/DataContext";
 import { ThemeContext } from "@/context/ThemeProvider";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import React, { useContext, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useContext, useState } from "react";
 import {
+  Alert,
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
   Switch,
@@ -17,9 +20,11 @@ import {
 
 export default function Profile() {
   const themeContext = useContext(ThemeContext);
-  const [activeTab, setActiveTab] = useState("datos");
   const authContext = useContext(AuthContext);
+  const { activitiesAPI } = useContext(DataContext);
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState("datos");
+  
   const [formData, setFormData] = useState({
     nombre: authContext.user?.name || "",
     apellido: authContext.user?.lastname || "",
@@ -27,21 +32,32 @@ export default function Profile() {
     contraseña: "••••••••",
   });
 
-  // Datos de ejemplo para Objetivos
-  const [objetivos, setObjetivos] = useState({
-    objetivo: "Bajar de peso",
-    frecuencia: "2-4 días a la semana",
-    recomendaciones: {
-      calorias: "2.200 kcal",
-      proteina: "140-160g",
-      entrenamientos: "4-5",
-      descanso: "48h por grupo muscular",
-    },
-    historialPeso: [
-      { fecha: "Martes 16 de diciembre", peso: "70 kg" },
-      { fecha: "Lunes 14 de enero", peso: "68 kg" },
-    ],
-  });
+  // Estado para historial de peso
+  const [historialPeso, setHistorialPeso] = useState<
+    { fecha: string; peso: number; id: string }[]
+  >([]);
+  const [modalPesoVisible, setModalPesoVisible] = useState(false);
+  const [nuevoPeso, setNuevoPeso] = useState("");
+
+  // Cargar historial de peso desde activities
+  const cargarHistorialPeso = useCallback(async () => {
+    // Por ahora, usamos el peso actual del usuario
+    if (authContext.user) {
+      const inicial = {
+        id: "inicial",
+        fecha: new Date().toISOString(),
+        peso: authContext.user.actualweight,
+      };
+      
+      setHistorialPeso([inicial]);
+    }
+  }, [authContext.user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      cargarHistorialPeso();
+    }, [cargarHistorialPeso])
+  );
 
   if (!themeContext) return null;
   const { theme, toggleTheme } = themeContext;
@@ -53,6 +69,66 @@ export default function Profile() {
   ];
 
   const isDarkMode = theme.background === "#181114";
+
+  // Función para formatear el nivel de actividad
+  const formatActivityLevel = (level: string) => {
+    const levels: { [key: string]: string } = {
+      "Baja": "2-3 días a la semana",
+      "Intermedia": "3-4 días a la semana",
+      "Alta": "5-6 días a la semana",
+      "Nula": "0-1 días a la semana",
+    };
+    return levels[level] || level;
+  };
+
+  // Función para calcular diferencia de peso
+  const calcularDiferenciaPeso = () => {
+    if (!authContext.user) return "";
+    const diferencia = authContext.user.targetweight - authContext.user.actualweight;
+    if (diferencia > 0) {
+      return `Ganar ${Math.abs(diferencia).toFixed(1)} kg`;
+    } else if (diferencia < 0) {
+      return `Bajar ${Math.abs(diferencia).toFixed(1)} kg`;
+    } else {
+      return "Mantener peso";
+    }
+  };
+
+  // Función para agregar nuevo peso
+  const handleAgregarPeso = async () => {
+    const peso = parseFloat(nuevoPeso);
+    
+    if (isNaN(peso) || peso < 20 || peso > 400) {
+      Alert.alert("Error", "Por favor ingresa un peso válido entre 20 y 400 kg");
+      return;
+    }
+
+    // Actualizar el peso actual del usuario
+    if (authContext.user) {
+      const success = await authContext.updateUser({
+        actualweight: peso,
+      });
+
+      if (success) {
+        // Agregar al historial
+        const nuevoRegistro = {
+          id: Date.now().toString(),
+          fecha: new Date().toISOString(),
+          peso: peso,
+        };
+
+        setHistorialPeso([nuevoRegistro, ...historialPeso]);
+        setNuevoPeso("");
+        setModalPesoVisible(false);
+        Alert.alert("¡Éxito!", "Peso actualizado correctamente");
+        
+        // Refrescar usuario
+        await authContext.refreshUser();
+      } else {
+        Alert.alert("Error", "No se pudo actualizar el peso");
+      }
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -213,7 +289,7 @@ export default function Profile() {
           </View>
         )}
 
-        {activeTab === "objetivos" && (
+        {activeTab === "objetivos" && authContext.user && (
           <View style={styles.objetivosContent}>
             {/* Objetivo Principal */}
             <TouchableOpacity
@@ -226,7 +302,7 @@ export default function Profile() {
                 style={styles.objetivoIcon}
               />
               <Text style={[styles.objetivoText, { color: theme.text }]}>
-                {objetivos.objetivo}
+                {calcularDiferenciaPeso()}
               </Text>
             </TouchableOpacity>
 
@@ -241,7 +317,7 @@ export default function Profile() {
                 style={styles.objetivoIcon}
               />
               <Text style={[styles.objetivoText, { color: theme.text }]}>
-                {objetivos.frecuencia}
+                {formatActivityLevel(authContext.user.activitylevel)}
               </Text>
             </TouchableOpacity>
 
@@ -254,9 +330,9 @@ export default function Profile() {
             >
               <View style={styles.recomendacionesHeader}>
                 <Ionicons
-                  name="lock-closed"
+                  name="bulb"
                   size={20}
-                  color={theme.text}
+                  color={theme.orange}
                   style={styles.objetivoIcon}
                 />
                 <Text
@@ -269,50 +345,63 @@ export default function Profile() {
               <View style={styles.recomendacionesList}>
                 <Text style={[styles.bulletItem, { color: theme.text }]}>
                   • Calorías diarias recomendadas:{" "}
-                  <Text style={styles.bulletValue}>
-                    {objetivos.recomendaciones.calorias}
-                  </Text>
+                  <Text style={styles.bulletValue}>2.200 kcal</Text>
                 </Text>
                 <Text style={[styles.bulletItem, { color: theme.text }]}>
                   • Proteína diaria:{" "}
-                  <Text style={styles.bulletValue}>
-                    {objetivos.recomendaciones.proteina}
-                  </Text>
+                  <Text style={styles.bulletValue}>140-160g</Text>
                 </Text>
                 <Text style={[styles.bulletItem, { color: theme.text }]}>
                   • Entrenamientos por semana:{" "}
-                  <Text style={styles.bulletValue}>
-                    {objetivos.recomendaciones.entrenamientos}
-                  </Text>
+                  <Text style={styles.bulletValue}>4-5</Text>
                 </Text>
                 <Text style={[styles.bulletItem, { color: theme.text }]}>
                   • Descanso entre entrenamientos:{" "}
-                  <Text style={styles.bulletValue}>
-                    {objetivos.recomendaciones.descanso}
-                  </Text>
+                  <Text style={styles.bulletValue}>48h por grupo muscular</Text>
                 </Text>
               </View>
             </View>
 
             {/* Historial de Peso */}
             <View style={styles.historialSection}>
-              <Text style={[styles.historialTitle, { color: theme.text }]}>
-                Historial de Peso
-              </Text>
+              <View style={styles.historialHeader}>
+                <Text style={[styles.historialTitle, { color: theme.text }]}>
+                  Historial de Peso
+                </Text>
+                <TouchableOpacity
+                  style={[styles.addPesoButton, { backgroundColor: theme.orange }]}
+                  onPress={() => setModalPesoVisible(true)}
+                >
+                  <Ionicons name="add" size={20} color="#fff" />
+                  <Text style={styles.addPesoButtonText}>Actualizar</Text>
+                </TouchableOpacity>
+              </View>
 
-              {objetivos.historialPeso.map((registro, index) => (
+              {historialPeso.map((registro, index) => (
                 <View
-                  key={index}
+                  key={registro.id}
                   style={[
                     styles.historialItem,
                     { backgroundColor: theme.tabsBack },
                   ]}
                 >
-                  <Text style={[styles.historialFecha, { color: theme.text }]}>
-                    {registro.fecha}
-                  </Text>
+                  <View>
+                    <Text style={[styles.historialFecha, { color: theme.text }]}>
+                      {new Date(registro.fecha).toLocaleDateString("es-ES", {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </Text>
+                    {index === 0 && (
+                      <Text style={[styles.historialLabel, { color: "#999" }]}>
+                        Peso actual
+                      </Text>
+                    )}
+                  </View>
                   <Text style={[styles.historialPeso, { color: theme.text }]}>
-                    {registro.peso}
+                    {registro.peso} kg
                   </Text>
                 </View>
               ))}
@@ -391,79 +480,6 @@ export default function Profile() {
               />
             </View>
 
-            {/* Idioma */}
-            <TouchableOpacity
-              style={[styles.configItem, { backgroundColor: theme.tabsBack }]}
-            >
-              <View style={styles.configLeft}>
-                <View
-                  style={[
-                    styles.iconCircle,
-                    { backgroundColor: theme.background },
-                  ]}
-                >
-                  <Ionicons name="globe" size={24} color={theme.orange} />
-                </View>
-                <View style={styles.configTextContainer}>
-                  <Text style={[styles.configTitle, { color: theme.text }]}>
-                    Idioma
-                  </Text>
-                  <Text style={styles.configSubtitle}>Español</Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#666" />
-            </TouchableOpacity>
-
-            {/* Privacidad */}
-            <TouchableOpacity
-              style={[styles.configItem, { backgroundColor: theme.tabsBack }]}
-            >
-              <View style={styles.configLeft}>
-                <View
-                  style={[
-                    styles.iconCircle,
-                    { backgroundColor: theme.background },
-                  ]}
-                >
-                  <Ionicons
-                    name="shield-checkmark"
-                    size={24}
-                    color={theme.orange}
-                  />
-                </View>
-                <View style={styles.configTextContainer}>
-                  <Text style={[styles.configTitle, { color: theme.text }]}>
-                    Privacidad
-                  </Text>
-                  <Text style={styles.configSubtitle}>Gestiona tus datos</Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#666" />
-            </TouchableOpacity>
-
-            {/* Ayuda */}
-            <TouchableOpacity
-              style={[styles.configItem, { backgroundColor: theme.tabsBack }]}
-            >
-              <View style={styles.configLeft}>
-                <View
-                  style={[
-                    styles.iconCircle,
-                    { backgroundColor: theme.background },
-                  ]}
-                >
-                  <Ionicons name="help-circle" size={24} color={theme.orange} />
-                </View>
-                <View style={styles.configTextContainer}>
-                  <Text style={[styles.configTitle, { color: theme.text }]}>
-                    Ayuda y Soporte
-                  </Text>
-                  <Text style={styles.configSubtitle}>Centro de ayuda</Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#666" />
-            </TouchableOpacity>
-
             {/* Cerrar Sesión */}
             <TouchableOpacity
               style={[styles.configItem, styles.logoutItem]}
@@ -491,6 +507,59 @@ export default function Profile() {
           </View>
         )}
       </ScrollView>
+
+      {/* Modal para agregar peso */}
+      <Modal
+        visible={modalPesoVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalPesoVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.background },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>
+                Actualizar Peso
+              </Text>
+              <TouchableOpacity onPress={() => setModalPesoVisible(false)}>
+                <Ionicons name="close" size={24} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={[styles.modalLabel, { color: theme.text }]}>
+                Peso actual (kg)
+              </Text>
+              <View style={[styles.modalInput, { borderColor: "#444" }]}>
+                <Ionicons name="scale" size={20} color={theme.text} />
+                <TextInput
+                  style={[styles.modalTextInput, { color: theme.text }]}
+                  placeholder="Ej: 75.5"
+                  placeholderTextColor="#666"
+                  keyboardType="decimal-pad"
+                  value={nuevoPeso}
+                  onChangeText={setNuevoPeso}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.modalButton,
+                  { backgroundColor: theme.orange },
+                ]}
+                onPress={handleAgregarPeso}
+              >
+                <Text style={styles.modalButtonText}>Guardar Peso</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -649,10 +718,28 @@ const styles = StyleSheet.create({
   historialSection: {
     marginTop: 20,
   },
+  historialHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
   historialTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 15,
+  },
+  addPesoButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  addPesoButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
   },
   historialItem: {
     flexDirection: "row",
@@ -664,6 +751,10 @@ const styles = StyleSheet.create({
   },
   historialFecha: {
     fontSize: 15,
+    marginBottom: 4,
+  },
+  historialLabel: {
+    fontSize: 12,
   },
   historialPeso: {
     fontSize: 16,
@@ -710,5 +801,57 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "rgba(255, 22, 10, 0.3)",
     marginTop: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  modalBody: {
+    marginBottom: 20,
+  },
+  modalLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  modalInput: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 12,
+    marginBottom: 20,
+  },
+  modalTextInput: {
+    flex: 1,
+    fontSize: 16,
+  },
+  modalButton: {
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  modalButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
