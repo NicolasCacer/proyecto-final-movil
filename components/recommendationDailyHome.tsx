@@ -149,9 +149,9 @@ export default function RecommendationDailyHome({
         source={{
           uri: data.image,
         }}
+        contentFit="cover"
         style={{
           flex: 1,
-          resizeMode: "cover",
           borderRadius: 10,
         }}
       />
