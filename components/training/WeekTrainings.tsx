@@ -10,27 +10,34 @@ interface WeekTrainingsProps {
   onDelete?: () => void; // Callback para refrescar la lista después de eliminar
 }
 
-export default function WeekTrainings({ trainings, selectedDate, onDelete }: WeekTrainingsProps) {
+export default function WeekTrainings({
+  trainings,
+  selectedDate,
+  onDelete,
+}: WeekTrainingsProps) {
   const themeContext = useContext(ThemeContext);
   const { routinesAPI } = useContext(DataContext);
-  
+
   if (!themeContext) return null;
   const { theme } = themeContext;
 
   // Mapeo de días en inglés a español
   const diasMap: { [key: string]: string } = {
-    "Domingo": "Domingo",
-    "Lunes": "Lunes",
-    "Martes": "Martes",
-    "Miércoles": "Miércoles",
-    "Jueves": "Jueves",
-    "Viernes": "Viernes",
-    "Sábado": "Sábado",
+    Domingo: "Domingo",
+    Lunes: "Lunes",
+    Martes: "Martes",
+    Miércoles: "Miércoles",
+    Jueves: "Jueves",
+    Viernes: "Viernes",
+    Sábado: "Sábado",
   };
 
   // Obtener el día de la semana de la fecha seleccionada
-  const selectedDayName = selectedDate.toLocaleDateString("es-ES", { weekday: "long" });
-  const diaCapitalizado = selectedDayName.charAt(0).toUpperCase() + selectedDayName.slice(1);
+  const selectedDayName = selectedDate.toLocaleDateString("es-ES", {
+    weekday: "long",
+  });
+  const diaCapitalizado =
+    selectedDayName.charAt(0).toUpperCase() + selectedDayName.slice(1);
 
   const handleDelete = async (routineId: string, routineName: string) => {
     Alert.alert(
@@ -80,10 +87,13 @@ export default function WeekTrainings({ trainings, selectedDate, onDelete }: Wee
               </Text>
             </View>
             <TouchableOpacity
-              style={[styles.deleteButton, { backgroundColor: theme.background }]}
+              style={[
+                styles.deleteButton,
+                { backgroundColor: theme.background },
+              ]}
               onPress={() => {
                 // Extraer el ID de la rutina del id compuesto
-                const routineId = entrenamiento.id.split('-')[0];
+                const routineId = entrenamiento.id;
                 handleDelete(routineId, entrenamiento.ejercicio);
               }}
             >
