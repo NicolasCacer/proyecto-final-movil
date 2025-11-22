@@ -12,6 +12,7 @@ export default function Training() {
   const [activeTab, setActiveTab] = useState("rutina");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [refreshKey, setRefreshKey] = useState(0); // Para forzar recarga
 
   const { entrenamientosProgramados, getWeekTrainings } = useTrainings();
 
@@ -33,6 +34,11 @@ export default function Training() {
     const newDate = new Date(currentDate);
     newDate.setMonth(newDate.getMonth() + 1);
     setCurrentDate(newDate);
+  };
+
+  const handleDelete = () => {
+    // Forzar recarga incrementando la key
+    setRefreshKey(prev => prev + 1);
   };
 
   return (
@@ -84,7 +90,7 @@ export default function Training() {
 
       {/* Content */}
       {activeTab === "rutina" ? (
-        <RutinaView />
+        <RutinaView key={refreshKey} />
       ) : (
         <ScrollView
           style={styles.content}
@@ -101,7 +107,11 @@ export default function Training() {
               trainings={entrenamientosProgramados}
             />
 
-            <WeekTrainings trainings={getWeekTrainings(selectedDate)} />
+            <WeekTrainings 
+              trainings={getWeekTrainings(selectedDate)} 
+              selectedDate={selectedDate}
+              onDelete={handleDelete}
+            />
           </View>
         </ScrollView>
       )}

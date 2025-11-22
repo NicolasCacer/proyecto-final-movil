@@ -1,21 +1,75 @@
+import { DataContext } from "@/context/DataContext";
 import { ThemeContext } from "@/context/ThemeProvider";
 import { Training } from "@/types/training";
 import React, { useContext } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface WeekTrainingsProps {
   trainings: Training[];
+  selectedDate: Date;
+  onDelete?: () => void; // Callback para refrescar la lista después de eliminar
 }
 
-export default function WeekTrainings({ trainings }: WeekTrainingsProps) {
+export default function WeekTrainings({
+  trainings,
+  selectedDate,
+  onDelete,
+}: WeekTrainingsProps) {
   const themeContext = useContext(ThemeContext);
+  const { routinesAPI } = useContext(DataContext);
+
   if (!themeContext) return null;
   const { theme } = themeContext;
+
+  // Mapeo de días en inglés a español
+  const diasMap: { [key: string]: string } = {
+    Domingo: "Domingo",
+    Lunes: "Lunes",
+    Martes: "Martes",
+    Miércoles: "Miércoles",
+    Jueves: "Jueves",
+    Viernes: "Viernes",
+    Sábado: "Sábado",
+  };
+
+  // Obtener el día de la semana de la fecha seleccionada
+  const selectedDayName = selectedDate.toLocaleDateString("es-ES", {
+    weekday: "long",
+  });
+  const diaCapitalizado =
+    selectedDayName.charAt(0).toUpperCase() + selectedDayName.slice(1);
+
+  const handleDelete = async (routineId: string, routineName: string) => {
+    Alert.alert(
+      "Eliminar Rutina",
+      `¿Estás seguro de que quieres eliminar la rutina "${routineName}"?`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            const success = await routinesAPI.delete(routineId);
+            if (success) {
+              Alert.alert("Éxito", "Rutina eliminada correctamente");
+              // Llamar al callback para refrescar
+              if (onDelete) onDelete();
+            } else {
+              Alert.alert("Error", "No se pudo eliminar la rutina");
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <View style={styles.container}>
       <Text style={[styles.title, { color: theme.text }]}>
-        Entrenamientos esta semana
+        Entrenamientos del día
       </Text>
 
       {trainings.length > 0 ? (
@@ -26,20 +80,32 @@ export default function WeekTrainings({ trainings }: WeekTrainingsProps) {
           >
             <View style={styles.left}>
               <Text style={[styles.dia, { color: theme.text }]}>
-                {entrenamiento.dia}
+                {diaCapitalizado}
               </Text>
               <Text style={[styles.ejercicio, { color: theme.text }]}>
                 {entrenamiento.ejercicio}
               </Text>
             </View>
-            <View style={styles.estadoBadge}>
-              <Text style={styles.estadoText}>{entrenamiento.estado}</Text>
-            </View>
+            <TouchableOpacity
+              style={[
+                styles.deleteButton,
+                { backgroundColor: theme.background },
+              ]}
+              onPress={() => {
+                // Extraer el ID de la rutina del id compuesto
+                const routineId = entrenamiento.id;
+                handleDelete(routineId, entrenamiento.ejercicio);
+              }}
+            >
+              <Text style={[styles.deleteText, { color: theme.red }]}>
+                Eliminar
+              </Text>
+            </TouchableOpacity>
           </View>
         ))
       ) : (
         <Text style={[styles.noTrainingsText, { color: "#999" }]}>
-          No hay entrenamientos programados esta semana
+          No hay entrenamientos programados para este día
         </Text>
       )}
     </View>
@@ -54,6 +120,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 15,
+    textAlign: "center",
   },
   card: {
     flexDirection: "row",
@@ -74,15 +141,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
   },
-  estadoBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  deleteButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
   },
-  estadoText: {
-    fontSize: 12,
-    color: "#999",
+  deleteText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   noTrainingsText: {
     textAlign: "center",

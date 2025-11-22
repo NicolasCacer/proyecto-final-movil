@@ -1,8 +1,10 @@
+import { DataContext } from "@/context/DataContext";
 import { ThemeContext } from "@/context/ThemeProvider";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useRouter } from "expo-router";
-import React, { useContext, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useContext, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Modal,
   ScrollView,
@@ -14,154 +16,91 @@ import {
 
 interface Ejercicio {
   id: string;
-  nombre: string;
+  name: string;
   series: number;
-  repeticiones: string;
-  peso?: string;
-  completado: boolean;
+  min_reps: number;
+  max_reps: number;
+  weight?: number;
+  muscle_group: string;
+  kcal: number;
+  minutes: number;
+  intensity: string;
+  description?: string;
 }
 
-interface DiaRutina {
+interface Rutina {
   id: string;
-  dia: string;
-  musculo: string;
+  name: string;
+  description?: string;
   ejercicios: Ejercicio[];
-  completado: boolean;
 }
 
 export default function RutinaView() {
   const themeContext = useContext(ThemeContext);
   const router = useRouter();
-  
-  if (!themeContext) return null;
-  const { theme } = themeContext;
+  const { routinesAPI, exercisesAPI, activitiesAPI } = useContext(DataContext);
 
-  const [rutinaSemanal] = useState<DiaRutina[]>([
-    {
-      id: "1",
-      dia: "Lunes",
-      musculo: "Pecho y Tríceps",
-      completado: false,
-      ejercicios: [
-        {
-          id: "1-1",
-          nombre: "Press de banca",
-          series: 4,
-          repeticiones: "8-10",
-          peso: "60kg",
-          completado: false,
-        },
-        {
-          id: "1-2",
-          nombre: "Press inclinado con mancuernas",
-          series: 3,
-          repeticiones: "10-12",
-          peso: "25kg",
-          completado: false,
-        },
-        {
-          id: "1-3",
-          nombre: "Aperturas con mancuernas",
-          series: 3,
-          repeticiones: "12-15",
-          peso: "15kg",
-          completado: false,
-        },
-        {
-          id: "1-4",
-          nombre: "Extensiones de tríceps",
-          series: 3,
-          repeticiones: "10-12",
-          completado: false,
-        },
-      ],
-    },
-    {
-      id: "2",
-      dia: "Miércoles",
-      musculo: "Pierna y Abdomen",
-      completado: false,
-      ejercicios: [
-        {
-          id: "2-1",
-          nombre: "Sentadillas",
-          series: 4,
-          repeticiones: "8-10",
-          peso: "80kg",
-          completado: false,
-        },
-        {
-          id: "2-2",
-          nombre: "Prensa de pierna",
-          series: 4,
-          repeticiones: "10-12",
-          peso: "120kg",
-          completado: false,
-        },
-        {
-          id: "2-3",
-          nombre: "Peso muerto rumano",
-          series: 3,
-          repeticiones: "10-12",
-          peso: "60kg",
-          completado: false,
-        },
-        {
-          id: "2-4",
-          nombre: "Plancha abdominal",
-          series: 3,
-          repeticiones: "30-60s",
-          completado: false,
-        },
-      ],
-    },
-    {
-      id: "3",
-      dia: "Viernes",
-      musculo: "Espalda y Bíceps",
-      completado: false,
-      ejercicios: [
-        {
-          id: "3-1",
-          nombre: "Dominadas",
-          series: 4,
-          repeticiones: "8-10",
-          completado: false,
-        },
-        {
-          id: "3-2",
-          nombre: "Remo con barra",
-          series: 4,
-          repeticiones: "8-10",
-          peso: "50kg",
-          completado: false,
-        },
-        {
-          id: "3-3",
-          nombre: "Jalón al pecho",
-          series: 3,
-          repeticiones: "10-12",
-          peso: "45kg",
-          completado: false,
-        },
-        {
-          id: "3-4",
-          nombre: "Curl con barra",
-          series: 3,
-          repeticiones: "10-12",
-          peso: "25kg",
-          completado: false,
-        },
-      ],
-    },
-  ]);
-
-  const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const [rutinas, setRutinas] = useState<Rutina[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedRoutine, setExpandedRoutine] = useState<string | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(0));
 
-  const toggleDay = (dayId: string) => {
-    setExpandedDay(expandedDay === dayId ? null : dayId);
+  if (!themeContext) return null;
+  const { theme } = themeContext;
+
+  // Cargar rutinas y ejercicios
+  const cargarRutinas = async () => {
+    setLoading(true);
+    try {
+      const rutinasDB = await routinesAPI.getAll();
+      const ejerciciosDB = await exercisesAPI.getAll();
+
+      if (!rutinasDB || !ejerciciosDB) {
+        setRutinas([]);
+        setLoading(false);
+        return;
+      }
+
+      // Agrupar ejercicios por rutina (nota: en tu esquema actual, 
+      // los ejercicios NO están vinculados directamente a rutinas,
+      // solo a través de activities. Por ahora, mostramos TODOS los ejercicios
+      // bajo cada rutina como ejemplo)
+      const rutinasConEjercicios: Rutina[] = rutinasDB.map((rutina: any) => ({
+        id: rutina.id,
+        name: rutina.name,
+        description: rutina.description,
+        ejercicios: ejerciciosDB, // Todos los ejercicios por ahora
+      }));
+
+      setRutinas(rutinasConEjercicios);
+    } catch (error) {
+      console.error("Error cargando rutinas:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      cargarRutinas();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+  );
+
+  const toggleRoutine = (routineId: string) => {
+    setExpandedRoutine(expandedRoutine === routineId ? null : routineId);
+  };
+
+  const handleCompleteExercise = async (routineId: string, exerciseId: string) => {
+    // Registrar actividad completada
+    await activitiesAPI.create({
+      routine_id: routineId,
+      exercise_id: exerciseId,
+    });
+
+    // Recargar rutinas
+    await cargarRutinas();
   };
 
   const handleOpenMenu = () => {
@@ -193,6 +132,120 @@ export default function RutinaView() {
     router.push("/create-routine");
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.orange} />
+        <Text style={[styles.loadingText, { color: theme.text }]}>
+          Cargando rutinas...
+        </Text>
+      </View>
+    );
+  }
+
+  if (rutinas.length === 0) {
+    return (
+      <>
+        <View style={styles.emptyContainer}>
+          <Ionicons name="fitness-outline" size={64} color="#666" />
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>
+            No tienes rutinas
+          </Text>
+          <Text style={[styles.emptySubtitle, { color: "#999" }]}>
+            Crea tu primera rutina personalizada
+          </Text>
+        </View>
+
+        {/* Botón flotante (FAB) */}
+        <TouchableOpacity
+          style={[styles.fabButton, { backgroundColor: theme.orange }]}
+          onPress={handleOpenMenu}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add" size={28} color="#fff" />
+        </TouchableOpacity>
+
+        {/* Modal del menú */}
+        <Modal
+          visible={menuVisible}
+          transparent
+          animationType="none"
+          onRequestClose={handleCloseMenu}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={handleCloseMenu}
+          >
+            <View style={styles.menuContainer}>
+              <Animated.View
+                style={[
+                  styles.menuContent,
+                  { backgroundColor: theme.tabsBack },
+                  {
+                    transform: [{ scale: scaleAnim }],
+                    opacity: scaleAnim,
+                  },
+                ]}
+              >
+                {/* Opción de IA */}
+                <TouchableOpacity
+                  style={[
+                    styles.menuOption,
+                    { borderBottomColor: "rgba(255,255,255,0.1)" },
+                  ]}
+                  onPress={handleAIRecommendation}
+                >
+                  <View
+                    style={[
+                      styles.menuIconCircle,
+                      { backgroundColor: theme.background },
+                    ]}
+                  >
+                    <Ionicons name="sparkles" size={24} color={theme.orange} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={[styles.menuTitle, { color: theme.text }]}>
+                      Recomendación IA
+                    </Text>
+                    <Text style={styles.menuSubtitle}>
+                      Deja que la IA cree tu rutina
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#666" />
+                </TouchableOpacity>
+
+                {/* Opción manual */}
+                <TouchableOpacity
+                  style={styles.menuOption}
+                  onPress={handleCreateCustom}
+                >
+                  <View
+                    style={[
+                      styles.menuIconCircle,
+                      { backgroundColor: theme.background },
+                    ]}
+                  >
+                    <Ionicons name="create" size={24} color={theme.orange} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={[styles.menuTitle, { color: theme.text }]}>
+                      Crear Rutina Personalizada
+                    </Text>
+                    <Text style={styles.menuSubtitle}>
+                      Define tus propios ejercicios
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#666" />
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      </>
+    );
+  }
+
   return (
     <>
       <ScrollView
@@ -201,48 +254,56 @@ export default function RutinaView() {
         contentContainerStyle={styles.contentContainer}
       >
         <Text style={[styles.title, { color: theme.text }]}>
-          Mi Rutina Semanal
+          Mis Rutinas
         </Text>
         <Text style={[styles.subtitle, { color: "#999" }]}>
-          Plan de entrenamiento personalizado
+          {rutinas.length} {rutinas.length === 1 ? "rutina" : "rutinas"} creadas
         </Text>
 
-        {rutinaSemanal.map((dia) => {
-          const isExpanded = expandedDay === dia.id;
-          const completedExercises = dia.ejercicios.filter(
-            (e) => e.completado
-          ).length;
-          const totalExercises = dia.ejercicios.length;
+        {rutinas.map((rutina) => {
+          const isExpanded = expandedRoutine === rutina.id;
+          const totalEjercicios = rutina.ejercicios.length;
 
           return (
-            <View key={dia.id} style={styles.diaContainer}>
-              {/* Header del día */}
+            <View key={rutina.id} style={styles.rutinaContainer}>
+              {/* Header de la rutina */}
               <TouchableOpacity
-                style={[styles.diaHeader, { backgroundColor: theme.tabsBack }]}
-                onPress={() => toggleDay(dia.id)}
+                style={[styles.rutinaHeader, { backgroundColor: theme.tabsBack }]}
+                onPress={() => toggleRoutine(rutina.id)}
               >
-                <View style={styles.diaHeaderLeft}>
+                <View style={styles.rutinaHeaderLeft}>
                   <View
                     style={[
-                      styles.diaIconCircle,
+                      styles.rutinaIconCircle,
                       { backgroundColor: theme.background },
                     ]}
                   >
                     <Ionicons name="fitness" size={24} color={theme.orange} />
                   </View>
-                  <View style={styles.diaInfo}>
-                    <Text style={[styles.diaNombre, { color: theme.text }]}>
-                      {dia.dia}
+                  <View style={styles.rutinaInfo}>
+                    <Text style={[styles.rutinaNombre, { color: theme.text }]}>
+                      {rutina.name}
                     </Text>
-                    <Text style={[styles.diaMusculo, { color: "#999" }]}>
-                      {dia.musculo}
-                    </Text>
+                    {rutina.description && (
+                      <Text style={[styles.rutinaDescripcion, { color: "#999" }]}>
+                        {/* Extraer y mostrar el día asignado */}
+                        {(() => {
+                          const diaMatch = rutina.description.match(/Día: (\w+)/);
+                          if (diaMatch) {
+                            const diaAsignado = diaMatch[1];
+                            const descripcionSinDia = rutina.description.replace(/ \| Día: \w+/, '').replace(/Día: \w+/, '');
+                            return descripcionSinDia ? `${descripcionSinDia} • ${diaAsignado}` : diaAsignado;
+                          }
+                          return rutina.description;
+                        })()}
+                      </Text>
+                    )}
                   </View>
                 </View>
 
-                <View style={styles.diaHeaderRight}>
+                <View style={styles.rutinaHeaderRight}>
                   <Text style={[styles.progressText, { color: "#999" }]}>
-                    {completedExercises}/{totalExercises}
+                    {totalEjercicios} ejerc.
                   </Text>
                   <Ionicons
                     name={isExpanded ? "chevron-up" : "chevron-down"}
@@ -260,43 +321,35 @@ export default function RutinaView() {
                     { backgroundColor: theme.tabsBack },
                   ]}
                 >
-                  {dia.ejercicios.map((ejercicio, index) => (
+                  {rutina.ejercicios.map((ejercicio, index) => (
                     <View
                       key={ejercicio.id}
                       style={[
                         styles.ejercicioItem,
-                        index !== dia.ejercicios.length - 1 && {
+                        index !== rutina.ejercicios.length - 1 && {
                           borderBottomWidth: 1,
                           borderBottomColor: "rgba(255,255,255,0.1)",
                         },
                       ]}
                     >
-                      <TouchableOpacity style={styles.ejercicioContent}>
-                        <View
-                          style={[
-                            styles.checkCircle,
-                            ejercicio.completado && {
-                              backgroundColor: theme.orange,
-                            },
-                          ]}
+                      <View style={styles.ejercicioContent}>
+                        <TouchableOpacity
+                          style={styles.checkCircle}
+                          onPress={() =>
+                            handleCompleteExercise(rutina.id, ejercicio.id)
+                          }
                         >
-                          {ejercicio.completado && (
-                            <Ionicons name="checkmark" size={16} color="#fff" />
-                          )}
-                        </View>
+                          <Ionicons name="radio-button-off" size={20} color="#666" />
+                        </TouchableOpacity>
 
                         <View style={styles.ejercicioInfo}>
                           <Text
                             style={[
                               styles.ejercicioNombre,
                               { color: theme.text },
-                              ejercicio.completado && {
-                                textDecorationLine: "line-through",
-                                opacity: 0.6,
-                              },
                             ]}
                           >
-                            {ejercicio.nombre}
+                            {ejercicio.name}
                           </Text>
                           <View style={styles.ejercicioDetalles}>
                             <Text style={styles.ejercicioDetalle}>
@@ -304,32 +357,42 @@ export default function RutinaView() {
                             </Text>
                             <Text style={styles.ejercicioDetalle}> • </Text>
                             <Text style={styles.ejercicioDetalle}>
-                              {ejercicio.repeticiones} reps
+                              {ejercicio.min_reps}-{ejercicio.max_reps} reps
                             </Text>
-                            {ejercicio.peso && (
+                            {ejercicio.weight && (
                               <>
                                 <Text style={styles.ejercicioDetalle}> • </Text>
                                 <Text style={styles.ejercicioDetalle}>
-                                  {ejercicio.peso}
+                                  {ejercicio.weight}kg
                                 </Text>
                               </>
                             )}
+                            <Text style={styles.ejercicioDetalle}> • </Text>
+                            <Text style={[styles.ejercicioDetalle, { textTransform: "capitalize" }]}>
+                              {ejercicio.intensity}
+                            </Text>
+                          </View>
+                          <View style={styles.musculoBadge}>
+                            <Text style={styles.musculoText}>
+                              {ejercicio.muscle_group}
+                            </Text>
                           </View>
                         </View>
-                      </TouchableOpacity>
+                      </View>
                     </View>
                   ))}
 
-                  {/* Botón de completar día */}
+                  {/* Botón de Entrenar */}
                   <TouchableOpacity
-                    style={[
-                      styles.completeDayButton,
-                      { backgroundColor: theme.orange },
-                    ]}
+                    style={[styles.entrenarButton, { backgroundColor: theme.orange }]}
+                    onPress={() => {
+                      console.log("Iniciar entrenamiento:", rutina.name);
+                      // Aquí irá la lógica futura
+                    }}
                   >
-                    <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                    <Text style={styles.completeDayText}>
-                      Marcar día como completado
+                    <Ionicons name="play-circle" size={24} color="#fff" />
+                    <Text style={styles.entrenarButtonText}>
+                      Entrenar en Conjunto
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -337,35 +400,6 @@ export default function RutinaView() {
             </View>
           );
         })}
-
-        {/* Estadísticas de la semana */}
-        <View
-          style={[styles.statsContainer, { backgroundColor: theme.tabsBack }]}
-        >
-          <Text style={[styles.statsTitle, { color: theme.text }]}>
-            Progreso Semanal
-          </Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: theme.orange }]}>
-                3
-              </Text>
-              <Text style={styles.statLabel}>Días activos</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: theme.orange }]}>
-                12
-              </Text>
-              <Text style={styles.statLabel}>Ejercicios</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: theme.orange }]}>
-                0/3
-              </Text>
-              <Text style={styles.statLabel}>Completados</Text>
-            </View>
-          </View>
-        </View>
       </ScrollView>
 
       {/* Botón flotante (FAB) */}
@@ -466,6 +500,32 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 120,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 40,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    textAlign: "center",
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
@@ -475,22 +535,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 20,
   },
-  diaContainer: {
+  rutinaContainer: {
     marginBottom: 15,
   },
-  diaHeader: {
+  rutinaHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: 16,
     borderRadius: 12,
   },
-  diaHeaderLeft: {
+  rutinaHeaderLeft: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
   },
-  diaIconCircle: {
+  rutinaIconCircle: {
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -498,18 +558,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 12,
   },
-  diaInfo: {
+  rutinaInfo: {
     flex: 1,
   },
-  diaNombre: {
+  rutinaNombre: {
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 2,
   },
-  diaMusculo: {
+  rutinaDescripcion: {
     fontSize: 14,
   },
-  diaHeaderRight: {
+  rutinaHeaderRight: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -529,17 +589,15 @@ const styles = StyleSheet.create({
   },
   ejercicioContent: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
   },
   checkCircle: {
     width: 24,
     height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#666",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
+    marginTop: 2,
   },
   ejercicioInfo: {
     flex: 1,
@@ -552,50 +610,24 @@ const styles = StyleSheet.create({
   ejercicioDetalles: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 4,
   },
   ejercicioDetalle: {
     fontSize: 13,
     color: "#999",
   },
-  completeDayButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 14,
-    margin: 12,
-    borderRadius: 10,
-    gap: 8,
+  musculoBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 126, 51, 0.2)",
+    marginTop: 4,
   },
-  completeDayText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  statsContainer: {
-    marginTop: 20,
-    padding: 20,
-    borderRadius: 16,
-  },
-  statsTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 15,
-  },
-  statsGrid: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  statItem: {
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 13,
-    color: "#999",
+  musculoText: {
+    fontSize: 12,
+    color: "#FF7E33",
+    fontWeight: "500",
   },
   fabButton: {
     position: "absolute",
@@ -611,8 +643,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    shadowColor: "#FF7E33",
-    shadowOpacity: 0.4,
   },
   modalOverlay: {
     flex: 1,
@@ -657,5 +687,24 @@ const styles = StyleSheet.create({
   menuSubtitle: {
     fontSize: 13,
     color: "#999",
+  },
+  entrenarButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    margin: 12,
+    borderRadius: 12,
+    gap: 10,
+    elevation: 4,
+    shadowColor: "#FF7E33",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  entrenarButtonText: {
+    color: "#fff",
+    fontSize: 17,
+    fontWeight: "700",
   },
 });
