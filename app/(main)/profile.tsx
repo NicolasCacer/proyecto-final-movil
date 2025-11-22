@@ -1,5 +1,4 @@
 import { AuthContext } from "@/context/AuthContext";
-import { DataContext } from "@/context/DataContext";
 import { ThemeContext } from "@/context/ThemeProvider";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -23,7 +22,6 @@ import {
 export default function Profile() {
   const themeContext = useContext(ThemeContext);
   const authContext = useContext(AuthContext);
-  const { activitiesAPI } = useContext(DataContext);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("datos");
 
