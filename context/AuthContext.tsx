@@ -25,6 +25,7 @@ interface AuthContextProps {
   resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateUser: (fields: Partial<User>) => Promise<boolean>;
 }
 
 // ---------------------------
@@ -145,6 +146,33 @@ export const AuthProvider = ({ children }: any) => {
   };
 
   // ---------------------------
+  // Update User — actualizar perfil
+  // ---------------------------
+  const updateUser = async (
+    updates: Partial<Omit<User, "id" | "email">>
+  ): Promise<boolean> => {
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session.session?.user?.id;
+
+    if (!userId) {
+      console.error("No hay usuario autenticado");
+      return false;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update(updates)
+      .eq("id", userId);
+
+    if (error) {
+      console.error("Error actualizando perfil:", error.message);
+      return false;
+    }
+
+    return true;
+  };
+
+  // ---------------------------
   // Reset Password
   // ---------------------------
   const resetPassword = async (email: string): Promise<void> => {
@@ -200,6 +228,7 @@ export const AuthProvider = ({ children }: any) => {
         resetPassword,
         logout,
         refreshUser,
+        updateUser,
       }}
     >
       {children}
