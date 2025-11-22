@@ -1,5 +1,4 @@
 import { AuthContext } from "@/context/AuthContext";
-import { DataContext } from "@/context/DataContext";
 import { ThemeContext } from "@/context/ThemeProvider";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -8,7 +7,9 @@ import React, { useCallback, useContext, useState } from "react";
 import {
   Alert,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -21,10 +22,9 @@ import {
 export default function Profile() {
   const themeContext = useContext(ThemeContext);
   const authContext = useContext(AuthContext);
-  const { activitiesAPI } = useContext(DataContext);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("datos");
-  
+
   const [formData, setFormData] = useState({
     nombre: authContext.user?.name || "",
     apellido: authContext.user?.lastname || "",
@@ -48,7 +48,7 @@ export default function Profile() {
         fecha: new Date().toISOString(),
         peso: authContext.user.actualweight,
       };
-      
+
       setHistorialPeso([inicial]);
     }
   }, [authContext.user]);
@@ -73,10 +73,10 @@ export default function Profile() {
   // Función para formatear el nivel de actividad
   const formatActivityLevel = (level: string) => {
     const levels: { [key: string]: string } = {
-      "Baja": "2-3 días a la semana",
-      "Intermedia": "3-4 días a la semana",
-      "Alta": "5-6 días a la semana",
-      "Nula": "0-1 días a la semana",
+      Baja: "2-3 días a la semana",
+      Intermedia: "3-4 días a la semana",
+      Alta: "5-6 días a la semana",
+      Nula: "0-1 días a la semana",
     };
     return levels[level] || level;
   };
@@ -84,7 +84,8 @@ export default function Profile() {
   // Función para calcular diferencia de peso
   const calcularDiferenciaPeso = () => {
     if (!authContext.user) return "";
-    const diferencia = authContext.user.targetweight - authContext.user.actualweight;
+    const diferencia =
+      authContext.user.targetweight - authContext.user.actualweight;
     if (diferencia > 0) {
       return `Ganar ${Math.abs(diferencia).toFixed(1)} kg`;
     } else if (diferencia < 0) {
@@ -97,9 +98,12 @@ export default function Profile() {
   // Función para agregar nuevo peso
   const handleAgregarPeso = async () => {
     const peso = parseFloat(nuevoPeso);
-    
+
     if (isNaN(peso) || peso < 20 || peso > 400) {
-      Alert.alert("Error", "Por favor ingresa un peso válido entre 20 y 400 kg");
+      Alert.alert(
+        "Error",
+        "Por favor ingresa un peso válido entre 20 y 400 kg"
+      );
       return;
     }
 
@@ -121,7 +125,7 @@ export default function Profile() {
         setNuevoPeso("");
         setModalPesoVisible(false);
         Alert.alert("¡Éxito!", "Peso actualizado correctamente");
-        
+
         // Refrescar usuario
         await authContext.refreshUser();
       } else {
@@ -369,7 +373,10 @@ export default function Profile() {
                   Historial de Peso
                 </Text>
                 <TouchableOpacity
-                  style={[styles.addPesoButton, { backgroundColor: theme.orange }]}
+                  style={[
+                    styles.addPesoButton,
+                    { backgroundColor: theme.orange },
+                  ]}
                   onPress={() => setModalPesoVisible(true)}
                 >
                   <Ionicons name="add" size={20} color="#fff" />
@@ -386,7 +393,9 @@ export default function Profile() {
                   ]}
                 >
                   <View>
-                    <Text style={[styles.historialFecha, { color: theme.text }]}>
+                    <Text
+                      style={[styles.historialFecha, { color: theme.text }]}
+                    >
                       {new Date(registro.fecha).toLocaleDateString("es-ES", {
                         weekday: "long",
                         year: "numeric",
@@ -515,12 +524,12 @@ export default function Profile() {
         animationType="slide"
         onRequestClose={() => setModalPesoVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalContent,
-              { backgroundColor: theme.background },
-            ]}
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <KeyboardAvoidingView
+            style={[styles.modalContent, { backgroundColor: theme.background }]}
           >
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>
@@ -548,17 +557,14 @@ export default function Profile() {
               </View>
 
               <TouchableOpacity
-                style={[
-                  styles.modalButton,
-                  { backgroundColor: theme.orange },
-                ]}
+                style={[styles.modalButton, { backgroundColor: theme.orange }]}
                 onPress={handleAgregarPeso}
               >
                 <Text style={styles.modalButtonText}>Guardar Peso</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
