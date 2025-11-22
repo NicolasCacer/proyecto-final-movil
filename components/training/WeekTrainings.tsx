@@ -18,7 +18,6 @@ export default function WeekTrainings({
   const themeContext = useContext(ThemeContext);
   const { routinesAPI } = useContext(DataContext);
 
-  if (!themeContext) return null;
   const { theme } = themeContext;
 
   // Mapeo de días en inglés a español

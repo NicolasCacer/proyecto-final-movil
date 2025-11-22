@@ -5,7 +5,6 @@ import { StyleSheet, Text, TouchableOpacity } from "react-native";
 
 export default function ThemeToggleButton() {
   const themeContext = useContext(ThemeContext);
-  if (!themeContext) return null;
 
   const { theme, toggleTheme } = themeContext;
 

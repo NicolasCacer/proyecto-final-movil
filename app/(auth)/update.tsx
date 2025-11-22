@@ -74,7 +74,6 @@ export default function UpdatePassword() {
     );
   };
 
-  if (!themeContext) return null;
   const { theme } = themeContext;
 
   return (

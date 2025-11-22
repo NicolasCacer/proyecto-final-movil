@@ -17,7 +17,7 @@ export default function Home() {
   const [user] = useState(authContex.user?.name || "Usuario");
   const week_kcal = { L: 100, M: 100, Mi: 200, J: 450, V: 10, S: 260, D: 50 };
   const targetKcal = 2000;
-  if (!themeContext) return null;
+
   const { theme } = themeContext;
 
   return (

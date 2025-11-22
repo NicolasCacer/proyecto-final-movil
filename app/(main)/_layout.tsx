@@ -6,7 +6,7 @@ import Svg, { G, Path } from "react-native-svg";
 
 export default function RootLayout() {
   const themeContext = useContext(ThemeContext);
-  if (!themeContext) return null;
+
   const { theme } = themeContext;
 
   // Función para renderizar el ícono con su recuadro activo

@@ -1,9 +1,9 @@
 import { ThemeContext } from "@/context/ThemeProvider";
 import {
-    generateCalendarDays,
-    getMonthName,
-    isSelected,
-    isToday
+  generateCalendarDays,
+  getMonthName,
+  isSelected,
+  isToday,
 } from "@/utils/calendarUtils";
 import React, { useContext } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -26,7 +26,7 @@ export default function TrainingCalendar({
   trainings,
 }: TrainingCalendarProps) {
   const themeContext = useContext(ThemeContext);
-  if (!themeContext) return null;
+
   const { theme } = themeContext;
 
   const weekDays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
@@ -69,8 +69,7 @@ export default function TrainingCalendar({
               style={[
                 styles.weekDayText,
                 {
-                  color:
-                    index === 0 || index === 6 ? theme.orange : theme.text,
+                  color: index === 0 || index === 6 ? theme.orange : theme.text,
                 },
               ]}
             >
@@ -86,7 +85,8 @@ export default function TrainingCalendar({
           <View key={weekIndex} style={styles.weekRow}>
             {week.map((day, dayIndex) => {
               const hasTrain = day && hasTraining(day);
-              const isDaySelected = day && isSelected(day, selectedDate, currentDate);
+              const isDaySelected =
+                day && isSelected(day, selectedDate, currentDate);
               const isDayToday = day && isToday(day, currentDate);
 
               return (

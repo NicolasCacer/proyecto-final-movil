@@ -24,7 +24,6 @@ export default function Scanner() {
 
   const { registrosDiarios, resumenSemanal, calcularTotales } = useNutrition();
 
-  if (!themeContext) return null;
   const { theme } = themeContext;
 
   const tabs = [

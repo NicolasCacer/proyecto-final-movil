@@ -38,7 +38,6 @@ export default function AddFood() {
     fats: "",
   });
 
-  if (!themeContext) return null;
   const { theme } = themeContext;
 
   const handleAgregarAlimento = () => {

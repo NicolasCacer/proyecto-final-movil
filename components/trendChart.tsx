@@ -15,7 +15,7 @@ export default function TrendChart({ data }: TrendChartProps) {
   const max = Math.max(...valores, 1);
 
   const themeContext = useContext(ThemeContext);
-  if (!themeContext) return null;
+
   const { theme } = themeContext;
 
   const BAR_WIDTH = 30;

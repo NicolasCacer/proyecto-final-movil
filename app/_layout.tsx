@@ -28,7 +28,7 @@ export default function RootLayout() {
 // === Componente que accede al tema ===
 function ThemedStack() {
   const themeContext = useContext(ThemeContext);
-  if (!themeContext) return null;
+
   const { theme } = themeContext;
 
   return (

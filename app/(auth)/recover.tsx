@@ -13,7 +13,6 @@ export default function RecoverScreen() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 
-  if (!themeContext) return null;
   const { theme } = themeContext;
 
   // 🔥 Regex de email

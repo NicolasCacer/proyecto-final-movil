@@ -16,7 +16,6 @@ export default function ScanBarcode() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
 
-  if (!themeContext) return null;
   const { theme } = themeContext;
 
   if (!permission) {

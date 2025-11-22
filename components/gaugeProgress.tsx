@@ -24,7 +24,6 @@ export default function GaugeProgress({ data, meta }: GaugeProps) {
   const circumference = 2 * Math.PI * radius;
   const semicircle = circumference / 1.5;
 
-  if (!themeContext) return null;
   const { theme } = themeContext;
 
   return (

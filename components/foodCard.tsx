@@ -32,7 +32,6 @@ export default function FoodCard({
 }: FoodCardProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const themeContext = useContext(ThemeContext);
-  if (!themeContext) return null;
 
   const { theme } = themeContext;
 

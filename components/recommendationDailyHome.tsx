@@ -21,7 +21,6 @@ export default function RecommendationDailyHome({
   const themeContext = useContext(ThemeContext);
   const router = useRouter();
 
-  if (!themeContext) return null;
   const { theme } = themeContext;
 
   const getIntensityColor = (level: string) => {
