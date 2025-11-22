@@ -11,7 +11,7 @@ export function BubbleChat({
   isUser: boolean;
 }) {
   const themeContext = useContext(ThemeContext);
-  if (!themeContext) return null;
+
   const { theme } = themeContext;
 
   return (

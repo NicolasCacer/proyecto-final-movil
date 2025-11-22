@@ -160,7 +160,6 @@ export default function Chat() {
     };
   }, []);
 
-  if (!themeContext) return null;
   const { theme } = themeContext;
 
   return (

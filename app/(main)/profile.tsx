@@ -59,7 +59,6 @@ export default function Profile() {
     }, [cargarHistorialPeso])
   );
 
-  if (!themeContext) return null;
   const { theme, toggleTheme } = themeContext;
 
   const tabs = [

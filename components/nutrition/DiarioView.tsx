@@ -37,7 +37,7 @@ export default function DiarioView({
   }));
 
   const themeContext = useContext(ThemeContext);
-  if (!themeContext) return null;
+
   const { theme } = themeContext;
 
   // Calcular totales de macros

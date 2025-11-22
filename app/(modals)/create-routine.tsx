@@ -52,7 +52,6 @@ export default function CreateRoutine() {
     descripcionEj: "",
   });
 
-  if (!themeContext) return null;
   const { theme } = themeContext;
 
   const gruposMusculares = [
@@ -66,7 +65,7 @@ export default function CreateRoutine() {
   ];
 
   const intensidades = ["baja", "media", "alta"];
-  
+
   const diasSemana = [
     "Lunes",
     "Martes",
@@ -79,8 +78,16 @@ export default function CreateRoutine() {
 
   const handleAddEjercicio = () => {
     // Validación
-    if (!nuevoEjercicio.nombre || !nuevoEjercicio.series || !nuevoEjercicio.minReps || !nuevoEjercicio.maxReps) {
-      Alert.alert("Error", "Por favor completa los campos obligatorios: nombre, series y repeticiones");
+    if (
+      !nuevoEjercicio.nombre ||
+      !nuevoEjercicio.series ||
+      !nuevoEjercicio.minReps ||
+      !nuevoEjercicio.maxReps
+    ) {
+      Alert.alert(
+        "Error",
+        "Por favor completa los campos obligatorios: nombre, series y repeticiones"
+      );
       return;
     }
 
@@ -131,7 +138,10 @@ export default function CreateRoutine() {
     }
 
     if (!diaAsignado) {
-      Alert.alert("Error", "Por favor selecciona un día de la semana para esta rutina");
+      Alert.alert(
+        "Error",
+        "Por favor selecciona un día de la semana para esta rutina"
+      );
       return;
     }
 
@@ -141,8 +151,8 @@ export default function CreateRoutine() {
       // 1. Crear la rutina con el día asignado en la descripción
       const routinePayload = {
         name: nombreRutina.trim(),
-        description: descripcion.trim() 
-          ? `${descripcion.trim()} | Día: ${diaAsignado}` 
+        description: descripcion.trim()
+          ? `${descripcion.trim()} | Día: ${diaAsignado}`
           : `Día: ${diaAsignado}`,
       };
 
@@ -182,7 +192,10 @@ export default function CreateRoutine() {
         const exerciseSuccess = await exercisesAPI.create(exercisePayload);
 
         if (!exerciseSuccess) {
-          Alert.alert("Error", `No se pudo crear el ejercicio: ${ejercicio.nombre}`);
+          Alert.alert(
+            "Error",
+            `No se pudo crear el ejercicio: ${ejercicio.nombre}`
+          );
           setLoading(false);
           return;
         }
@@ -241,9 +254,7 @@ export default function CreateRoutine() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <Text style={[styles.title, { color: theme.text }]}>
-          Nueva Rutina
-        </Text>
+        <Text style={[styles.title, { color: theme.text }]}>Nueva Rutina</Text>
 
         {/* Nombre de la rutina */}
         <View style={styles.section}>
@@ -293,7 +304,10 @@ export default function CreateRoutine() {
           <View
             style={[
               styles.pickerContainer,
-              { borderColor: diaAsignado ? "#444" : theme.orange, backgroundColor: theme.tabsBack },
+              {
+                borderColor: diaAsignado ? "#444" : theme.orange,
+                backgroundColor: theme.tabsBack,
+              },
             ]}
           >
             <Picker
@@ -333,9 +347,7 @@ export default function CreateRoutine() {
               ]}
             >
               <Ionicons name="barbell-outline" size={48} color="#666" />
-              <Text style={styles.emptyText}>
-                No hay ejercicios agregados
-              </Text>
+              <Text style={styles.emptyText}>No hay ejercicios agregados</Text>
               <Text style={styles.emptySubtext}>
                 Toca "Agregar" para comenzar
               </Text>
@@ -374,7 +386,12 @@ export default function CreateRoutine() {
                       )}
                     </View>
                     <View style={styles.ejercicioDetails}>
-                      <Text style={[styles.ejercicioDetail, { textTransform: "capitalize" }]}>
+                      <Text
+                        style={[
+                          styles.ejercicioDetail,
+                          { textTransform: "capitalize" },
+                        ]}
+                      >
                         Intensidad: {ejercicio.intensidad}
                       </Text>
                     </View>
@@ -389,7 +406,11 @@ export default function CreateRoutine() {
                   <TouchableOpacity
                     onPress={() => handleRemoveEjercicio(ejercicio.id)}
                   >
-                    <Ionicons name="trash-outline" size={20} color={theme.red} />
+                    <Ionicons
+                      name="trash-outline"
+                      size={20}
+                      color={theme.red}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -407,10 +428,7 @@ export default function CreateRoutine() {
       >
         <View style={styles.modalOverlay}>
           <View
-            style={[
-              styles.modalContent,
-              { backgroundColor: theme.background },
-            ]}
+            style={[styles.modalContent, { backgroundColor: theme.background }]}
           >
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>
@@ -465,7 +483,9 @@ export default function CreateRoutine() {
 
               {/* Repeticiones Min y Max */}
               <View style={styles.modalRow}>
-                <View style={[styles.modalSection, { flex: 1, marginRight: 8 }]}>
+                <View
+                  style={[styles.modalSection, { flex: 1, marginRight: 8 }]}
+                >
                   <Text style={[styles.modalLabel, { color: theme.text }]}>
                     Reps Mínimas *
                   </Text>
@@ -563,7 +583,10 @@ export default function CreateRoutine() {
                   <Picker
                     selectedValue={nuevoEjercicio.intensidad}
                     onValueChange={(value) =>
-                      setNuevoEjercicio({ ...nuevoEjercicio, intensidad: value })
+                      setNuevoEjercicio({
+                        ...nuevoEjercicio,
+                        intensidad: value,
+                      })
                     }
                     style={{ color: theme.text }}
                     dropdownIconColor={theme.text}
@@ -596,7 +619,10 @@ export default function CreateRoutine() {
                     placeholderTextColor="#666"
                     value={nuevoEjercicio.descripcionEj}
                     onChangeText={(text) =>
-                      setNuevoEjercicio({ ...nuevoEjercicio, descripcionEj: text })
+                      setNuevoEjercicio({
+                        ...nuevoEjercicio,
+                        descripcionEj: text,
+                      })
                     }
                     multiline
                     numberOfLines={3}
@@ -612,9 +638,7 @@ export default function CreateRoutine() {
                 ]}
                 onPress={handleAddEjercicio}
               >
-                <Text style={styles.modalAddButtonText}>
-                  Agregar Ejercicio
-                </Text>
+                <Text style={styles.modalAddButtonText}>Agregar Ejercicio</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>

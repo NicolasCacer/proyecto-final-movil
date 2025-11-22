@@ -12,7 +12,10 @@ interface ThemeContextType {
   toggleTheme?: () => void;
 }
 
-export const ThemeContext = createContext<ThemeContextType | null>(null);
+export const ThemeContext = createContext<ThemeContextType>({
+  theme: darkTheme,
+  toggleTheme: () => {},
+});
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const colorScheme = Appearance.getColorScheme();

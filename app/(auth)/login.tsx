@@ -33,7 +33,6 @@ export default function Login() {
 
   const [loading, setLoading] = useState(false);
 
-  if (!themeContext) return null;
   const { theme } = themeContext;
 
   // === Validación de Email en tiempo real ===

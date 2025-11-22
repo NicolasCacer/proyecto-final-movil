@@ -16,7 +16,7 @@ export default function RootLayout() {
 
 function ThemedStack() {
   const themeContext = useContext(ThemeContext);
-  if (!themeContext) return null;
+
   const { theme } = themeContext;
 
   return (

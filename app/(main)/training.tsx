@@ -1,11 +1,17 @@
-import TrainingCalendar from "@/components/training/TrainingCalendar";
 import RutinaView from "@/components/training/RutinaView";
+import TrainingCalendar from "@/components/training/TrainingCalendar";
 import WeekTrainings from "@/components/training/WeekTrainings";
 import { ThemeContext } from "@/context/ThemeProvider";
 import { useTrainings } from "@/hooks/useTrainings";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useContext, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function Training() {
   const themeContext = useContext(ThemeContext);
@@ -16,7 +22,6 @@ export default function Training() {
 
   const { entrenamientosProgramados, getWeekTrainings } = useTrainings();
 
-  if (!themeContext) return null;
   const { theme } = themeContext;
 
   const tabs = [
@@ -38,7 +43,7 @@ export default function Training() {
 
   const handleDelete = () => {
     // Forzar recarga incrementando la key
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
   };
 
   return (
@@ -107,8 +112,8 @@ export default function Training() {
               trainings={entrenamientosProgramados}
             />
 
-            <WeekTrainings 
-              trainings={getWeekTrainings(selectedDate)} 
+            <WeekTrainings
+              trainings={getWeekTrainings(selectedDate)}
               selectedDate={selectedDate}
               onDelete={handleDelete}
             />

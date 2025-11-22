@@ -13,7 +13,6 @@ export default function SemanalView({
   resumenSemanal,
 }: SemanalViewProps) {
   const themeContext = useContext(ThemeContext);
-  if (!themeContext) return null;
 
   const { theme } = themeContext;
 

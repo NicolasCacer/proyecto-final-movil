@@ -46,9 +46,6 @@ export default function RutinaView() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(0));
 
-  if (!themeContext) return null;
-  const { theme } = themeContext;
-
   // Cargar rutinas y ejercicios
   const cargarRutinas = async () => {
     setLoading(true);
@@ -62,7 +59,7 @@ export default function RutinaView() {
         return;
       }
 
-      // Agrupar ejercicios por rutina (nota: en tu esquema actual, 
+      // Agrupar ejercicios por rutina (nota: en tu esquema actual,
       // los ejercicios NO están vinculados directamente a rutinas,
       // solo a través de activities. Por ahora, mostramos TODOS los ejercicios
       // bajo cada rutina como ejemplo)
@@ -92,7 +89,10 @@ export default function RutinaView() {
     setExpandedRoutine(expandedRoutine === routineId ? null : routineId);
   };
 
-  const handleCompleteExercise = async (routineId: string, exerciseId: string) => {
+  const handleCompleteExercise = async (
+    routineId: string,
+    exerciseId: string
+  ) => {
     // Registrar actividad completada
     await activitiesAPI.create({
       routine_id: routineId,
@@ -126,6 +126,8 @@ export default function RutinaView() {
     console.log("Obtener recomendación de IA");
     // Aquí irá la lógica para la recomendación de IA
   };
+
+  const { theme } = themeContext;
 
   const handleCreateCustom = () => {
     handleCloseMenu();
@@ -253,9 +255,7 @@ export default function RutinaView() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <Text style={[styles.title, { color: theme.text }]}>
-          Mis Rutinas
-        </Text>
+        <Text style={[styles.title, { color: theme.text }]}>Mis Rutinas</Text>
         <Text style={[styles.subtitle, { color: "#999" }]}>
           {rutinas.length} {rutinas.length === 1 ? "rutina" : "rutinas"} creadas
         </Text>
@@ -268,7 +268,10 @@ export default function RutinaView() {
             <View key={rutina.id} style={styles.rutinaContainer}>
               {/* Header de la rutina */}
               <TouchableOpacity
-                style={[styles.rutinaHeader, { backgroundColor: theme.tabsBack }]}
+                style={[
+                  styles.rutinaHeader,
+                  { backgroundColor: theme.tabsBack },
+                ]}
                 onPress={() => toggleRoutine(rutina.id)}
               >
                 <View style={styles.rutinaHeaderLeft}>
@@ -285,14 +288,21 @@ export default function RutinaView() {
                       {rutina.name}
                     </Text>
                     {rutina.description && (
-                      <Text style={[styles.rutinaDescripcion, { color: "#999" }]}>
+                      <Text
+                        style={[styles.rutinaDescripcion, { color: "#999" }]}
+                      >
                         {/* Extraer y mostrar el día asignado */}
                         {(() => {
-                          const diaMatch = rutina.description.match(/Día: (\w+)/);
+                          const diaMatch =
+                            rutina.description.match(/Día: (\w+)/);
                           if (diaMatch) {
                             const diaAsignado = diaMatch[1];
-                            const descripcionSinDia = rutina.description.replace(/ \| Día: \w+/, '').replace(/Día: \w+/, '');
-                            return descripcionSinDia ? `${descripcionSinDia} • ${diaAsignado}` : diaAsignado;
+                            const descripcionSinDia = rutina.description
+                              .replace(/ \| Día: \w+/, "")
+                              .replace(/Día: \w+/, "");
+                            return descripcionSinDia
+                              ? `${descripcionSinDia} • ${diaAsignado}`
+                              : diaAsignado;
                           }
                           return rutina.description;
                         })()}
@@ -339,7 +349,11 @@ export default function RutinaView() {
                             handleCompleteExercise(rutina.id, ejercicio.id)
                           }
                         >
-                          <Ionicons name="radio-button-off" size={20} color="#666" />
+                          <Ionicons
+                            name="radio-button-off"
+                            size={20}
+                            color="#666"
+                          />
                         </TouchableOpacity>
 
                         <View style={styles.ejercicioInfo}>
@@ -368,7 +382,12 @@ export default function RutinaView() {
                               </>
                             )}
                             <Text style={styles.ejercicioDetalle}> • </Text>
-                            <Text style={[styles.ejercicioDetalle, { textTransform: "capitalize" }]}>
+                            <Text
+                              style={[
+                                styles.ejercicioDetalle,
+                                { textTransform: "capitalize" },
+                              ]}
+                            >
                               {ejercicio.intensity}
                             </Text>
                           </View>
@@ -384,7 +403,10 @@ export default function RutinaView() {
 
                   {/* Botón de Entrenar */}
                   <TouchableOpacity
-                    style={[styles.entrenarButton, { backgroundColor: theme.orange }]}
+                    style={[
+                      styles.entrenarButton,
+                      { backgroundColor: theme.orange },
+                    ]}
                     onPress={() => {
                       console.log("Iniciar entrenamiento:", rutina.name);
                       // Aquí irá la lógica futura

@@ -1,14 +1,15 @@
 import { ThemeContext } from "@/context/ThemeProvider";
 import AppText from "@/utils/AppText";
+import { Image } from "expo-image";
 import React, { useContext, useState } from "react";
 import {
-  Image,
   Modal,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
+
 import Svg, { Path } from "react-native-svg";
 
 interface FoodCardProps {
@@ -32,7 +33,6 @@ export default function FoodCard({
 }: FoodCardProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const themeContext = useContext(ThemeContext);
-  if (!themeContext) return null;
 
   const { theme } = themeContext;
 
