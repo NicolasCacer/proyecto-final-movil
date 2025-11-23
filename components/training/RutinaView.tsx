@@ -645,8 +645,10 @@ export default function RutinaView() {
                         { backgroundColor: theme.orange },
                       ]}
                       onPress={() => {
-                        console.log("Iniciar entrenamiento:", rutina.name);
-                        // Aquí irá la lógica futura
+                        router.push({
+                          pathname: "/(modals)/RoutineTimer",
+                          params: { rutina: JSON.stringify(rutina) },
+                        });
                       }}
                     >
                       <Ionicons name="play-circle" size={24} color="#fff" />
@@ -662,7 +664,10 @@ export default function RutinaView() {
                         { backgroundColor: theme.red },
                       ]}
                       onPress={() => {
-                        console.log("Iniciar entrenamiento:", rutina.name);
+                        console.log(
+                          "Iniciar entrenamiento conjunto:",
+                          rutina.name
+                        );
                         // Aquí irá la lógica futura
                       }}
                     >
