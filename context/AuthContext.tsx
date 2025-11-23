@@ -15,6 +15,7 @@ export interface User {
   activitylevel: string;
   fatindex?: number | null;
   targetfatindex?: number | null;
+  avatar_url?: string | null;
   aicontext?: string | null;
 }
 
