@@ -73,7 +73,7 @@ export default function WeekTrainings({
 
       setTrainings(trainingsData);
     } catch (error) {
-      console.error("Error cargando entrenamientos:", error);
+      console.log("Error cargando entrenamientos:", error);
       setTrainings([]);
     }
   };

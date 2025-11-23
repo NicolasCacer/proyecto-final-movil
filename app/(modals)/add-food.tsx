@@ -107,7 +107,7 @@ export default function AddFood() {
         { text: "OK", onPress: () => router.back() },
       ]);
     } catch (error) {
-      console.error("Error guardando productos:", error);
+      console.log("Error guardando productos:", error);
       Alert.alert("Error", "Hubo un problema registrando los alimentos");
     }
   };
@@ -283,7 +283,7 @@ export default function AddFood() {
         onRequestClose={() => setModalVisible(false)}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior="padding"
           keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
           style={{ flex: 1, justifyContent: "flex-end" }}
         >

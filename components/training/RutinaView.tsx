@@ -90,7 +90,7 @@ export default function RutinaView() {
 
       setRutinas(rutinasConEjercicios);
     } catch (error) {
-      console.error("Error cargando rutinas:", error);
+      console.log("Error cargando rutinas:", error);
     } finally {
       setLoading(false);
     }
@@ -324,7 +324,7 @@ export default function RutinaView() {
       const encoded = encodeURIComponent(JSON.stringify(rutinaFinal));
       router.push(`/create-routine?prefill=${encoded}`);
     } catch (err) {
-      console.error("Error generando rutina IA:", err);
+      console.log("Error generando rutina IA:", err);
       Alert.alert("Error", "Ocurrió un error al generar la rutina con la IA");
     } finally {
       setLoadingAI(false);

@@ -7,7 +7,6 @@ import { useContext, useEffect, useRef, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -64,7 +63,7 @@ export default function Chat() {
 
       return aiText;
     } catch (err) {
-      console.error("ERROR GEMINI:", err);
+      console.log("ERROR GEMINI:", err);
       return "Se produjo un error al hablar con la IA 😵";
     } finally {
       setLoading(false);
@@ -174,7 +173,7 @@ export default function Chat() {
     >
       <KeyboardAvoidingView
         style={{ flex: 1, width: "100%" }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior="padding"
       >
         <ScrollView
           ref={scrollRef}
