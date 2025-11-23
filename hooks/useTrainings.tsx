@@ -35,7 +35,6 @@ export const useTrainings = () => {
     const fechas: string[] = [];
     const hoy = new Date();
 
-    // Mapeo de días en español a números (0=Domingo, 1=Lunes, etc.)
     const diasMap: { [key: string]: number } = {
       Domingo: 0,
       Lunes: 1,
@@ -46,24 +45,15 @@ export const useTrainings = () => {
       Sábado: 6,
     };
 
-    // Generar fechas para las próximas 12 semanas
     for (let semana = 0; semana < 12; semana++) {
       rutinas.forEach((rutina) => {
-        // Extraer día de la descripción
-        const diaMatch = rutina.description?.match(/Día: (\w+)/);
-        if (diaMatch) {
-          const diaNombre = diaMatch[1];
-          const diaNumero = diasMap[diaNombre];
-
-          if (diaNumero !== undefined) {
-            // Calcular la fecha
-            const fecha = new Date(hoy);
-            const diaActual = fecha.getDay();
-            const diferencia = diaNumero - diaActual + semana * 7;
-
-            fecha.setDate(fecha.getDate() + diferencia);
-            fechas.push(formatDate(fecha));
-          }
+        const diaNumero = diasMap[rutina.day]; // usa directamente day
+        if (diaNumero !== undefined) {
+          const fecha = new Date(hoy);
+          const diaActual = fecha.getDay();
+          const diferencia = diaNumero - diaActual + semana * 7;
+          fecha.setDate(fecha.getDate() + diferencia);
+          fechas.push(formatDate(fecha));
         }
       });
     }
@@ -99,8 +89,7 @@ export const useTrainings = () => {
 
       // Buscar rutinas asignadas a este día
       const rutinasDelDia = rutinasDelUsuario.filter((rutina) => {
-        const diaMatch = rutina.description?.match(/Día: (\w+)/);
-        return diaMatch && diaMatch[1] === diaNombre;
+        return diaNombre;
       });
 
       // Si hay rutinas para este día y la fecha está en las programadas
@@ -127,5 +116,6 @@ export const useTrainings = () => {
     entrenamientosProgramados,
     getWeekTrainings,
     refrescar: cargarRutinas, // Exportar función para refrescar manualmente
+    diasEntrenamiento: rutinasDelUsuario.map((r) => r.day),
   };
 };

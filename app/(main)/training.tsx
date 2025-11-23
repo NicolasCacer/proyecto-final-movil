@@ -18,9 +18,9 @@ export default function Training() {
   const [activeTab, setActiveTab] = useState("rutina");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [refreshKey, setRefreshKey] = useState(0); // Para forzar recarga
+  const [refreshKey] = useState(0); // Para forzar recarga
 
-  const { entrenamientosProgramados, getWeekTrainings } = useTrainings();
+  const { diasEntrenamiento, refrescar } = useTrainings();
 
   const { theme } = themeContext;
 
@@ -39,11 +39,6 @@ export default function Training() {
     const newDate = new Date(currentDate);
     newDate.setMonth(newDate.getMonth() + 1);
     setCurrentDate(newDate);
-  };
-
-  const handleDelete = () => {
-    // Forzar recarga incrementando la key
-    setRefreshKey((prev) => prev + 1);
   };
 
   return (
@@ -109,14 +104,10 @@ export default function Training() {
               onDateSelect={setSelectedDate}
               onPreviousMonth={goToPreviousMonth}
               onNextMonth={goToNextMonth}
-              trainings={entrenamientosProgramados}
+              trainings={diasEntrenamiento}
             />
 
-            <WeekTrainings
-              trainings={getWeekTrainings(selectedDate)}
-              selectedDate={selectedDate}
-              onDelete={handleDelete}
-            />
+            <WeekTrainings selectedDate={selectedDate} onDelete={refrescar} />
           </View>
         </ScrollView>
       )}
