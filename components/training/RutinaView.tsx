@@ -164,6 +164,7 @@ export default function RutinaView() {
     handleCloseMenu();
     setLoadingAI(true);
     const prompt = `
+      Semilla ${Math.random()}. 
       Eres un coach fitness profesional. Genera una rutina de ejercicios en JSON sin unidades de medida. 
       El usuario tiene las siguientes características:
       - Peso actual: ${user?.actualweight} kg
