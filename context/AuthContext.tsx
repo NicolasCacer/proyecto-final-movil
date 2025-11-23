@@ -79,6 +79,7 @@ export const AuthProvider = ({ children }: any) => {
     height: profile.height,
     activitylevel: profile.activitylevel,
     fatindex: profile.fatindex,
+    avatar_url: profile.avatar_url,
     targetfatindex: profile.targetfatindex,
     aicontext: profile.aicontext,
   });
