@@ -55,7 +55,7 @@ export const DataProvider = ({ children }: any) => {
       const { data, error } = await query;
 
       if (error) {
-        console.error(`Error getting ${table}:`, error.message);
+        console.log(`Error getting ${table}:`, error.message);
         return null;
       }
       return data;
@@ -69,7 +69,7 @@ export const DataProvider = ({ children }: any) => {
       const { data, error } = await query.maybeSingle();
 
       if (error) {
-        console.error(`Error getting ${table} by id:`, error.message);
+        console.log(`Error getting ${table} by id:`, error.message);
         return null;
       }
       return data;
@@ -81,7 +81,7 @@ export const DataProvider = ({ children }: any) => {
       const { error } = await supabase.from(table).insert(finalPayload);
 
       if (error) {
-        console.error(`Error inserting ${table}:`, error.message);
+        console.log(`Error inserting ${table}:`, error.message);
         return false;
       }
       return true;
@@ -95,7 +95,7 @@ export const DataProvider = ({ children }: any) => {
       const { error } = await query;
 
       if (error) {
-        console.error(`Error updating ${table}:`, error.message);
+        console.log(`Error updating ${table}:`, error.message);
         return false;
       }
       return true;
@@ -109,7 +109,7 @@ export const DataProvider = ({ children }: any) => {
       const { error } = await query;
 
       if (error) {
-        console.error(`Error deleting ${table}:`, error.message);
+        console.log(`Error deleting ${table}:`, error.message);
         return false;
       }
       return true;

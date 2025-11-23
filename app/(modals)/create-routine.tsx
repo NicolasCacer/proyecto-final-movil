@@ -241,7 +241,7 @@ export default function CreateRoutine() {
         ]
       );
     } catch (error) {
-      console.error("Error guardando rutina:", error);
+      console.log("Error guardando rutina:", error);
       Alert.alert("Error", "Ocurrió un error al guardar la rutina");
       setLoading(false);
     }
@@ -501,7 +501,6 @@ export default function CreateRoutine() {
       </ScrollView>
 
       {/* MODAL DE EJERCICIOS */}
-      {/* MODAL DE EJERCICIOS */}
       <Modal
         visible={modalVisible}
         transparent
@@ -510,6 +509,7 @@ export default function CreateRoutine() {
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "android" ? 0 : 0}
           style={{ flex: 1 }}
         >
           <View style={styles.modalOverlay}>
@@ -949,6 +949,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: "90%",
+    flex: 1,
   },
   modalHeader: {
     flexDirection: "row",

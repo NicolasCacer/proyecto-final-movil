@@ -12,7 +12,6 @@ import {
   Alert,
   Keyboard,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -72,21 +71,29 @@ export default function Login() {
     Keyboard.dismiss();
 
     setLoading(true);
-    const success = await authContext?.login(email, password);
-    setLoading(false);
-
-    if (success) {
-      router.push("/home");
-    } else {
-      Alert.alert("Error", "Credenciales incorrectas. Intenta de nuevo.");
+    try {
+      const success = await authContext?.login(email, password);
+      if (success) {
+        router.push("/home");
+      } else {
+        Alert.alert("Error", "Credenciales incorrectas. Intenta de nuevo.");
+      }
+    } catch (err: any) {
+      if (err?.response?.status === 401) {
+        Alert.alert("Error", "Correo o contraseña incorrectos.");
+      } else {
+        Alert.alert(
+          "Error",
+          "No se pudo iniciar sesión. Revisa tu conexión o intenta más tarde."
+        );
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"

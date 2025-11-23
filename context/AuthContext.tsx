@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }: any) => {
     });
 
     if (error) {
-      console.error("Error en login:", error.message);
+      console.log("Error en login:", error.message);
       return false;
     }
 
@@ -114,7 +114,7 @@ export const AuthProvider = ({ children }: any) => {
     });
 
     if (error || !data.user) {
-      console.error("Error al registrar:", error?.message);
+      console.log("Error al registrar:", error?.message);
       return false;
     }
 
@@ -136,7 +136,7 @@ export const AuthProvider = ({ children }: any) => {
     });
 
     if (insertError) {
-      console.error("Error al insertar perfil:", insertError.message);
+      console.log("Error al insertar perfil:", insertError.message);
       return false;
     }
 
@@ -155,7 +155,7 @@ export const AuthProvider = ({ children }: any) => {
     const userId = session.session?.user?.id;
 
     if (!userId) {
-      console.error("No hay usuario autenticado");
+      console.log("No hay usuario autenticado");
       return false;
     }
 
@@ -165,7 +165,7 @@ export const AuthProvider = ({ children }: any) => {
       .eq("id", userId);
 
     if (error) {
-      console.error("Error actualizando perfil:", error.message);
+      console.log("Error actualizando perfil:", error.message);
       return false;
     }
 
@@ -177,7 +177,7 @@ export const AuthProvider = ({ children }: any) => {
   // ---------------------------
   const resetPassword = async (email: string): Promise<void> => {
     const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) console.error("Error en reset:", error.message);
+    if (error) console.log("Error en reset:", error.message);
   };
 
   // ---------------------------
@@ -207,7 +207,7 @@ export const AuthProvider = ({ children }: any) => {
       .maybeSingle();
 
     if (error) {
-      console.error("Error cargando profile:", error.message);
+      console.log("Error cargando profile:", error.message);
       return;
     }
 

@@ -10,7 +10,6 @@ import {
   Image,
   KeyboardAvoidingView,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -528,10 +527,7 @@ export default function Profile() {
         animationType="slide"
         onRequestClose={() => setModalPesoVisible(false)}
       >
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
           <KeyboardAvoidingView
             style={[styles.modalContent, { backgroundColor: theme.background }]}
           >

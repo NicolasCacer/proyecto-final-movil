@@ -159,7 +159,7 @@ export default function ScanBarcode() {
         );
       }
     } catch (error) {
-      console.error("Error al buscar producto:", error);
+      console.log("Error al buscar producto:", error);
       Alert.alert("Error", "No se pudo buscar el producto.", [
         { text: "Reintentar", onPress: () => searchProduct(barcode) },
         { text: "Cancelar", style: "cancel" },
