@@ -66,8 +66,6 @@ export default function CreateRoutine() {
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  console.log(initialData);
-
   // Estado para nuevo ejercicio
   const [nuevoEjercicio, setNuevoEjercicio] = useState({
     nombre: "",

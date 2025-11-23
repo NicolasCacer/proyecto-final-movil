@@ -3,15 +3,14 @@ import AppText from "@/utils/AppText";
 import { useContext } from "react";
 import { View } from "react-native";
 
-export function BubbleChat({
-  text,
-  isUser,
-}: {
-  text: string;
+type BubbleChatProps = {
+  text?: string; // opcional
   isUser: boolean;
-}) {
-  const themeContext = useContext(ThemeContext);
+  children?: React.ReactNode; // opcional
+};
 
+export function BubbleChat({ text = "", isUser, children }: BubbleChatProps) {
+  const themeContext = useContext(ThemeContext);
   const { theme } = themeContext;
 
   return (
@@ -27,9 +26,15 @@ export function BubbleChat({
         flexShrink: 1,
       }}
     >
-      <AppText style={{ color: theme.text, fontSize: 18, textAlign: "auto" }}>
-        {text.trim()}
-      </AppText>
+      {/* Mostrar texto solo si existe */}
+      {text.trim().length > 0 && (
+        <AppText style={{ color: theme.text, fontSize: 18, textAlign: "auto" }}>
+          {text.trim()}
+        </AppText>
+      )}
+
+      {/* Mostrar children solo si existe */}
+      {children && <View>{children}</View>}
     </View>
   );
 }
