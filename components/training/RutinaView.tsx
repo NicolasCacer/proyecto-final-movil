@@ -1,15 +1,17 @@
+import { AuthContext } from "@/context/AuthContext";
 import { DataContext } from "@/context/DataContext";
 import { ThemeContext } from "@/context/ThemeProvider";
+import AppText from "@/utils/AppText";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useContext, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Modal,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -37,6 +39,7 @@ interface Rutina {
 
 export default function RutinaView() {
   const themeContext = useContext(ThemeContext);
+  const { user } = useContext(AuthContext);
   const [completados, setCompletados] = useState<Record<string, boolean>>({});
 
   const router = useRouter();
@@ -53,7 +56,7 @@ export default function RutinaView() {
     try {
       const rutinasDB = await routinesAPI.getAll();
       const ejerciciosDB = await exercisesAPI.getAll();
-      const actividadesDB = await activitiesAPI.getAll(); // <-- Traer actividades
+      const actividadesDB = await activitiesAPI.getAll();
 
       if (!rutinasDB || !ejerciciosDB || !actividadesDB) {
         setRutinas([]);
@@ -155,10 +158,173 @@ export default function RutinaView() {
     }).start(() => setMenuVisible(false));
   };
 
-  const handleAIRecommendation = () => {
+  const handleAIRecommendation = async () => {
     handleCloseMenu();
-    console.log("Obtener recomendación de IA");
-    // Aquí irá la lógica para la recomendación de IA
+
+    const prompt = `
+      Eres un coach fitness profesional. Genera una rutina de ejercicios en JSON sin unidades de medida. 
+      El usuario tiene las siguientes características:
+      - Peso actual: ${user?.actualweight} kg
+      - Peso objetivo: ${user?.targetweight} kg
+      - Altura: ${user?.height} cm
+      - Nivel de actividad: ${user?.activitylevel}
+      - Porcentaje de grasa corporal actual: ${
+        user?.fatindex ?? "no proporcionado"
+      }
+      - Porcentaje de grasa objetivo: ${
+        user?.targetfatindex ?? "no proporcionado"
+      }
+      Ten en cuenta también esta información adicional que el usuario proporcionó: ${
+        user?.aicontext ?? "ninguna"
+      }`;
+
+    try {
+      const response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        {
+          method: "POST",
+          headers: {
+            "x-goog-api-key": process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? "",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: prompt,
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              responseMimeType: "application/json",
+              responseJsonSchema: {
+                type: "object",
+                properties: {
+                  name: {
+                    type: "string",
+                    description:
+                      "nombre corto y motivador para la rutina de ejercicios, menos de 5 palabras",
+                  },
+                  description: {
+                    type: "string",
+                    description:
+                      "Descripción detallada de la rutina: objetivos, intensidad, músculos trabajados y recomendaciones generales",
+                  },
+                  ejercicios: {
+                    type: "array",
+                    minItems: 3,
+                    maxItems: 5,
+                    items: {
+                      type: "object",
+                      properties: {
+                        nombre: {
+                          type: "string",
+                          description:
+                            "nombre corto y explicativo del ejercicio",
+                        },
+                        series: { type: "string" },
+                        minReps: { type: "string" },
+                        maxReps: { type: "string" },
+                        peso: {
+                          type: "string",
+                          description:
+                            "peso de mancuernas, pesas, barra, etc. Si es peso corporal omitir este campo. debe ser numerico o sino nulo",
+                        },
+                        musculo: {
+                          type: "string",
+                          enum: [
+                            "Pecho",
+                            "Espalda",
+                            "Piernas",
+                            "Glúteos",
+                            "Hombros",
+                            "Brazos",
+                            "Abdomen",
+                            "Cardio",
+                          ],
+                        },
+                        intensidad: {
+                          type: "string",
+                          enum: ["baja", "media", "alta"],
+                        },
+                        descripcionEj: {
+                          type: "string",
+                          description:
+                            "explicación breve del ejercicio o movimientos. Adevertencias en caso de ser necesario",
+                        },
+                        kcal: {
+                          type: "string",
+                          description:
+                            "kcal estimadas a quemar por esta rutina",
+                        },
+                        minutes: {
+                          type: "string",
+                          description:
+                            "minutos estimados de duración de este ejericio con todos sus sets y repeticiones",
+                        },
+                      },
+                      required: [
+                        "nombre",
+                        "series",
+                        "minReps",
+                        "maxReps",
+                        "musculo",
+                        "intensidad",
+                        "kcal",
+                        "minutes",
+                      ],
+                    },
+                  },
+                },
+                required: ["name", "description", "ejercicios"],
+              },
+            },
+          }),
+        }
+      );
+
+      const data = await response.json();
+      const diasSemana = [
+        "Domingo",
+        "Lunes",
+        "Martes",
+        "Miércoles",
+        "Jueves",
+        "Viernes",
+        "Sábado",
+      ];
+      const hoy = diasSemana[new Date().getDay()];
+
+      const jsonText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!jsonText) {
+        Alert.alert("Error", "No se pudo generar la rutina con la IA");
+        return;
+      }
+
+      const aiRutina = JSON.parse(jsonText);
+
+      // Asignar el día actual
+      aiRutina.day = hoy;
+
+      // Agregar IDs a los ejercicios
+      const ejerciciosConId = aiRutina.ejercicios.map(
+        (ej: any, index: number) => ({
+          ...ej,
+          id: `ej${index + 1}`,
+        })
+      );
+
+      const rutinaFinal = { ...aiRutina, ejercicios: ejerciciosConId };
+
+      // Codificar y redirigir
+      const encoded = encodeURIComponent(JSON.stringify(rutinaFinal));
+      router.push(`/create-routine?prefill=${encoded}`);
+    } catch (err) {
+      console.error("Error generando rutina IA:", err);
+      Alert.alert("Error", "Ocurrió un error al generar la rutina con la IA");
+    }
   };
 
   const { theme } = themeContext;
@@ -172,9 +338,9 @@ export default function RutinaView() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.orange} />
-        <Text style={[styles.loadingText, { color: theme.text }]}>
+        <AppText style={[styles.loadingText, { color: theme.text }]}>
           Cargando rutinas...
-        </Text>
+        </AppText>
       </View>
     );
   }
@@ -184,12 +350,12 @@ export default function RutinaView() {
       <>
         <View style={styles.emptyContainer}>
           <Ionicons name="fitness-outline" size={64} color="#666" />
-          <Text style={[styles.emptyTitle, { color: theme.text }]}>
+          <AppText style={[styles.emptyTitle, { color: theme.text }]}>
             No tienes rutinas
-          </Text>
-          <Text style={[styles.emptySubtitle, { color: "#999" }]}>
+          </AppText>
+          <AppText style={[styles.emptySubtitle, { color: "#999" }]}>
             Crea tu primera rutina personalizada
-          </Text>
+          </AppText>
         </View>
 
         {/* Botón flotante (FAB) */}
@@ -241,12 +407,12 @@ export default function RutinaView() {
                     <Ionicons name="sparkles" size={24} color={theme.orange} />
                   </View>
                   <View style={styles.menuTextContainer}>
-                    <Text style={[styles.menuTitle, { color: theme.text }]}>
+                    <AppText style={[styles.menuTitle, { color: theme.text }]}>
                       Recomendación IA
-                    </Text>
-                    <Text style={styles.menuSubtitle}>
+                    </AppText>
+                    <AppText style={styles.menuSubtitle}>
                       Deja que la IA cree tu rutina
-                    </Text>
+                    </AppText>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#666" />
                 </TouchableOpacity>
@@ -265,12 +431,12 @@ export default function RutinaView() {
                     <Ionicons name="create" size={24} color={theme.orange} />
                   </View>
                   <View style={styles.menuTextContainer}>
-                    <Text style={[styles.menuTitle, { color: theme.text }]}>
+                    <AppText style={[styles.menuTitle, { color: theme.text }]}>
                       Crear Rutina Personalizada
-                    </Text>
-                    <Text style={styles.menuSubtitle}>
+                    </AppText>
+                    <AppText style={styles.menuSubtitle}>
                       Define tus propios ejercicios
-                    </Text>
+                    </AppText>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#666" />
                 </TouchableOpacity>
@@ -289,10 +455,12 @@ export default function RutinaView() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <Text style={[styles.title, { color: theme.text }]}>Mis Rutinas</Text>
-        <Text style={[styles.subtitle, { color: "#999" }]}>
+        <AppText style={[styles.title, { color: theme.text }]}>
+          Mis Rutinas
+        </AppText>
+        <AppText style={[styles.subtitle, { color: "#999" }]}>
           {rutinas.length} {rutinas.length === 1 ? "rutina" : "rutinas"} creadas
-        </Text>
+        </AppText>
 
         {rutinas.map((rutina) => {
           const isExpanded = expandedRoutine === rutina.id;
@@ -318,11 +486,13 @@ export default function RutinaView() {
                     <Ionicons name="fitness" size={24} color={theme.orange} />
                   </View>
                   <View style={styles.rutinaInfo}>
-                    <Text style={[styles.rutinaNombre, { color: theme.text }]}>
+                    <AppText
+                      style={[styles.rutinaNombre, { color: theme.text }]}
+                    >
                       {rutina.name}
-                    </Text>
+                    </AppText>
                     {rutina.description && (
-                      <Text
+                      <AppText
                         style={[styles.rutinaDescripcion, { color: "#999" }]}
                       >
                         {/* Extraer y mostrar el día asignado */}
@@ -340,15 +510,15 @@ export default function RutinaView() {
                           }
                           return rutina.description;
                         })()}
-                      </Text>
+                      </AppText>
                     )}
                   </View>
                 </View>
 
                 <View style={styles.rutinaHeaderRight}>
-                  <Text style={[styles.progressText, { color: "#999" }]}>
+                  <AppText style={[styles.progressText, { color: "#999" }]}>
                     {totalEjercicios} ejerc.
-                  </Text>
+                  </AppText>
                   <Ionicons
                     name={isExpanded ? "chevron-up" : "chevron-down"}
                     size={20}
@@ -399,44 +569,53 @@ export default function RutinaView() {
                         </TouchableOpacity>
 
                         <View style={styles.ejercicioInfo}>
-                          <Text
+                          <AppText
                             style={[
                               styles.ejercicioNombre,
                               { color: theme.text },
                             ]}
                           >
                             {ejercicio.name}
-                          </Text>
+                          </AppText>
                           <View style={styles.ejercicioDetalles}>
-                            <Text style={styles.ejercicioDetalle}>
+                            <AppText style={styles.ejercicioDetalle}>
                               {ejercicio.series} series
-                            </Text>
-                            <Text style={styles.ejercicioDetalle}> • </Text>
-                            <Text style={styles.ejercicioDetalle}>
+                            </AppText>
+                            <AppText style={styles.ejercicioDetalle}>
+                              {" "}
+                              •{" "}
+                            </AppText>
+                            <AppText style={styles.ejercicioDetalle}>
                               {ejercicio.min_reps}-{ejercicio.max_reps} reps
-                            </Text>
+                            </AppText>
                             {ejercicio.weight && (
                               <>
-                                <Text style={styles.ejercicioDetalle}> • </Text>
-                                <Text style={styles.ejercicioDetalle}>
+                                <AppText style={styles.ejercicioDetalle}>
+                                  {" "}
+                                  •{" "}
+                                </AppText>
+                                <AppText style={styles.ejercicioDetalle}>
                                   {ejercicio.weight}kg
-                                </Text>
+                                </AppText>
                               </>
                             )}
-                            <Text style={styles.ejercicioDetalle}> • </Text>
-                            <Text
+                            <AppText style={styles.ejercicioDetalle}>
+                              {" "}
+                              •{" "}
+                            </AppText>
+                            <AppText
                               style={[
                                 styles.ejercicioDetalle,
                                 { textTransform: "capitalize" },
                               ]}
                             >
                               {ejercicio.intensity}
-                            </Text>
+                            </AppText>
                           </View>
                           <View style={styles.musculoBadge}>
-                            <Text style={styles.musculoText}>
+                            <AppText style={styles.musculoText}>
                               {ejercicio.muscle_group}
-                            </Text>
+                            </AppText>
                           </View>
                         </View>
                       </View>
@@ -455,7 +634,9 @@ export default function RutinaView() {
                       }}
                     >
                       <Ionicons name="play-circle" size={24} color="#fff" />
-                      <Text style={styles.entrenarButtonText}>Empezar</Text>
+                      <AppText style={styles.entrenarButtonText}>
+                        Empezar
+                      </AppText>
                     </TouchableOpacity>
 
                     {/* Botón de Entrenar en Conjunto */}
@@ -470,9 +651,9 @@ export default function RutinaView() {
                       }}
                     >
                       <Ionicons name="play-circle" size={24} color="#fff" />
-                      <Text style={styles.entrenarButtonText}>
+                      <AppText style={styles.entrenarButtonText}>
                         Multi Entrenar
-                      </Text>
+                      </AppText>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -531,12 +712,12 @@ export default function RutinaView() {
                   <Ionicons name="sparkles" size={24} color={theme.orange} />
                 </View>
                 <View style={styles.menuTextContainer}>
-                  <Text style={[styles.menuTitle, { color: theme.text }]}>
+                  <AppText style={[styles.menuTitle, { color: theme.text }]}>
                     Recomendación IA
-                  </Text>
-                  <Text style={styles.menuSubtitle}>
+                  </AppText>
+                  <AppText style={styles.menuSubtitle}>
                     Deja que la IA cree tu rutina
-                  </Text>
+                  </AppText>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#666" />
               </TouchableOpacity>
@@ -555,12 +736,12 @@ export default function RutinaView() {
                   <Ionicons name="create" size={24} color={theme.orange} />
                 </View>
                 <View style={styles.menuTextContainer}>
-                  <Text style={[styles.menuTitle, { color: theme.text }]}>
+                  <AppText style={[styles.menuTitle, { color: theme.text }]}>
                     Crear Rutina Personalizada
-                  </Text>
-                  <Text style={styles.menuSubtitle}>
+                  </AppText>
+                  <AppText style={styles.menuSubtitle}>
                     Define tus propios ejercicios
-                  </Text>
+                  </AppText>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#666" />
               </TouchableOpacity>

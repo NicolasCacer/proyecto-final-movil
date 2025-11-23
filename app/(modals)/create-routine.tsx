@@ -1,8 +1,11 @@
 import { DataContext } from "@/context/DataContext";
 import { ThemeContext } from "@/context/ThemeProvider";
+import AppText from "@/utils/AppText";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Picker } from "@react-native-picker/picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router/build/hooks";
 import React, { useContext, useState } from "react";
 import {
   Alert,
@@ -11,12 +14,12 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Path } from "react-native-svg";
 
 interface Ejercicio {
   id: string;
@@ -34,11 +37,18 @@ interface Ejercicio {
 
 export default function CreateRoutine() {
   const themeContext = useContext(ThemeContext);
+  const params = useLocalSearchParams() as { prefill?: string };
+  const initialData = params.prefill
+    ? JSON.parse(decodeURIComponent(params.prefill))
+    : null;
+  const [nombreRutina, setNombreRutina] = useState(initialData?.name || "");
+
   const router = useRouter();
   const { routinesAPI, exercisesAPI } = useContext(DataContext);
 
-  const [nombreRutina, setNombreRutina] = useState("");
-  const [descripcion, setDescripcion] = useState("");
+  const [descripcion, setDescripcion] = useState(
+    initialData?.description || ""
+  );
   // Obtener el día de hoy en español
   const hoy = new Date();
   const diaHoy = hoy.toLocaleDateString("es-ES", { weekday: "long" });
@@ -47,10 +57,16 @@ export default function CreateRoutine() {
   const diaHoyCapitalizado = diaHoy.charAt(0).toUpperCase() + diaHoy.slice(1);
 
   // Estado inicial con el día de hoy
-  const [diaAsignado, setDiaAsignado] = useState(diaHoyCapitalizado);
-  const [ejercicios, setEjercicios] = useState<Ejercicio[]>([]);
+  const [diaAsignado, setDiaAsignado] = useState(
+    initialData?.day || diaHoyCapitalizado
+  );
+  const [ejercicios, setEjercicios] = useState<Ejercicio[]>(
+    initialData?.ejercicios || []
+  );
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  console.log(initialData);
 
   // Estado para nuevo ejercicio
   const [nuevoEjercicio, setNuevoEjercicio] = useState({
@@ -73,6 +89,7 @@ export default function CreateRoutine() {
     "Espalda",
     "Piernas",
     "Hombros",
+    "Glúteos",
     "Brazos",
     "Abdomen",
     "Cardio",
@@ -242,7 +259,9 @@ export default function CreateRoutine() {
           onPress={() => router.back()}
         >
           <Ionicons name="chevron-back" size={24} color={theme.text} />
-          <Text style={[styles.backText, { color: theme.text }]}>Volver</Text>
+          <AppText style={[styles.backText, { color: theme.text }]}>
+            Volver
+          </AppText>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -254,9 +273,9 @@ export default function CreateRoutine() {
           onPress={handleSaveRoutine}
           disabled={loading}
         >
-          <Text style={styles.saveButtonText}>
+          <AppText style={styles.saveButtonText}>
             {loading ? "Guardando..." : "Guardar"}
-          </Text>
+          </AppText>
         </TouchableOpacity>
       </View>
 
@@ -265,13 +284,59 @@ export default function CreateRoutine() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <Text style={[styles.title, { color: theme.text }]}>Nueva Rutina</Text>
+        {initialData && (
+          <LinearGradient
+            colors={[theme.orange, theme.red]}
+            start={{ x: 0, y: 1 }}
+            end={{ x: 1, y: 0 }}
+            style={{
+              borderRadius: 20,
+              padding: 2,
+              alignSelf: "center", // centra el LinearGradient
+              marginBottom: 16,
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.background,
+                borderRadius: 18,
+                paddingHorizontal: 16, // espacio horizontal alrededor del contenido
+                paddingVertical: 8, // espacio vertical
+                flexDirection: "row",
+                gap: 8,
+                alignItems: "center",
+                justifyContent: "center", // centra icono + texto
+              }}
+              onPress={() => Alert.alert("IA", "Sugerencia de la IA")}
+            >
+              <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+                <Path
+                  d="M15 19c1.2-3.678 2.526-5.005 6-6c-3.474-.995-4.8-2.322-6-6c-1.2 3.678-2.526 5.005-6 6c3.474.995 4.8 2.322 6 6Z
+             M7 10c.6-1.84 1.263-2.503 3-3c-1.737-.497-2.4-1.16-3-3c-.6 1.84-1.263 2.503-3 3c1.737.497 2.4 1.16 3 3Z
+             M8.5 21c.3-.92.631-1.251 1.5-1.5c-.869-.249-1.2-.58-1.5-1.5c-.3.92-.631 1.251-1.5 1.5c.869.249 1.2.58 1.5 1.5Z"
+                  stroke="#fff"
+                  strokeWidth={2}
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              </Svg>
+              <AppText style={{ fontSize: 18, color: theme.text }}>
+                Hoy te recomendamos...
+              </AppText>
+            </TouchableOpacity>
+          </LinearGradient>
+        )}
+        {!initialData && (
+          <AppText style={[styles.title, { color: theme.text }]}>
+            Nueva Rutina
+          </AppText>
+        )}
 
         {/* Nombre */}
         <View style={styles.section}>
-          <Text style={[styles.label, { color: theme.text }]}>
+          <AppText style={[styles.label, { color: theme.text }]}>
             Nombre de la rutina *
-          </Text>
+          </AppText>
           <View style={[styles.input, { borderColor: "#444" }]}>
             <Ionicons name="fitness" size={20} color={theme.text} />
             <TextInput
@@ -286,9 +351,9 @@ export default function CreateRoutine() {
 
         {/* Descripción */}
         <View style={styles.section}>
-          <Text style={[styles.label, { color: theme.text }]}>
+          <AppText style={[styles.label, { color: theme.text }]}>
             Descripción (opcional)
-          </Text>
+          </AppText>
           <View
             style={[
               styles.textareaContainer,
@@ -309,9 +374,9 @@ export default function CreateRoutine() {
 
         {/* Día */}
         <View style={styles.section}>
-          <Text style={[styles.label, { color: theme.text }]}>
+          <AppText style={[styles.label, { color: theme.text }]}>
             Día asignado *
-          </Text>
+          </AppText>
           <View
             style={[
               styles.pickerContainer,
@@ -338,15 +403,15 @@ export default function CreateRoutine() {
         {/* Ejercicios */}
         <View style={styles.section}>
           <View style={styles.ejerciciosHeader}>
-            <Text style={[styles.label, { color: theme.text }]}>
+            <AppText style={[styles.label, { color: theme.text }]}>
               Ejercicios ({ejercicios.length})
-            </Text>
+            </AppText>
             <TouchableOpacity
               style={[styles.addButton, { backgroundColor: theme.orange }]}
               onPress={() => setModalVisible(true)}
             >
               <Ionicons name="add" size={20} color="#fff" />
-              <Text style={styles.addButtonText}>Agregar</Text>
+              <AppText style={styles.addButtonText}>Agregar</AppText>
             </TouchableOpacity>
           </View>
 
@@ -358,10 +423,12 @@ export default function CreateRoutine() {
               ]}
             >
               <Ionicons name="barbell-outline" size={48} color="#666" />
-              <Text style={styles.emptyText}>No hay ejercicios agregados</Text>
-              <Text style={styles.emptySubtext}>
+              <AppText style={styles.emptyText}>
+                No hay ejercicios agregados
+              </AppText>
+              <AppText style={styles.emptySubtext}>
                 Toca Agregar para comenzar
-              </Text>
+              </AppText>
             </View>
           ) : (
             ejercicios.map((ejercicio) => (
@@ -374,47 +441,47 @@ export default function CreateRoutine() {
               >
                 <View style={styles.ejercicioContent}>
                   <View style={styles.ejercicioLeft}>
-                    <Text
+                    <AppText
                       style={[styles.ejercicioNombre, { color: theme.text }]}
                     >
                       {ejercicio.nombre}
-                    </Text>
+                    </AppText>
 
                     <View style={styles.ejercicioDetails}>
-                      <Text style={styles.ejercicioDetail}>
+                      <AppText style={styles.ejercicioDetail}>
                         {ejercicio.series} series
-                      </Text>
-                      <Text style={styles.ejercicioDetail}> • </Text>
-                      <Text style={styles.ejercicioDetail}>
+                      </AppText>
+                      <AppText style={styles.ejercicioDetail}> • </AppText>
+                      <AppText style={styles.ejercicioDetail}>
                         {ejercicio.minReps}-{ejercicio.maxReps} reps
-                      </Text>
+                      </AppText>
 
                       {ejercicio.peso && (
                         <>
-                          <Text style={styles.ejercicioDetail}> • </Text>
-                          <Text style={styles.ejercicioDetail}>
+                          <AppText style={styles.ejercicioDetail}> • </AppText>
+                          <AppText style={styles.ejercicioDetail}>
                             {ejercicio.peso}kg
-                          </Text>
+                          </AppText>
                         </>
                       )}
                     </View>
 
                     <View style={styles.ejercicioDetails}>
-                      <Text
+                      <AppText
                         style={[
                           styles.ejercicioDetail,
                           { textTransform: "capitalize" },
                         ]}
                       >
                         Intensidad: {ejercicio.intensidad}
-                      </Text>
+                      </AppText>
                     </View>
 
                     {ejercicio.musculo && (
                       <View style={styles.musculoBadge}>
-                        <Text style={styles.musculoText}>
+                        <AppText style={styles.musculoText}>
                           {ejercicio.musculo}
-                        </Text>
+                        </AppText>
                       </View>
                     )}
                   </View>
@@ -456,9 +523,9 @@ export default function CreateRoutine() {
             >
               {/* Header */}
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: theme.text }]}>
+                <AppText style={[styles.modalTitle, { color: theme.text }]}>
                   Agregar Ejercicio
-                </Text>
+                </AppText>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                   <Ionicons name="close" size={24} color={theme.text} />
                 </TouchableOpacity>
@@ -471,9 +538,9 @@ export default function CreateRoutine() {
               >
                 {/* Nombre */}
                 <View style={styles.modalSection}>
-                  <Text style={[styles.modalLabel, { color: theme.text }]}>
+                  <AppText style={[styles.modalLabel, { color: theme.text }]}>
                     Nombre del ejercicio *
-                  </Text>
+                  </AppText>
                   <View style={[styles.input, { borderColor: "#444" }]}>
                     <Ionicons name="barbell" size={20} color={theme.text} />
                     <TextInput
@@ -490,9 +557,9 @@ export default function CreateRoutine() {
 
                 {/* Series */}
                 <View style={styles.modalSection}>
-                  <Text style={[styles.modalLabel, { color: theme.text }]}>
+                  <AppText style={[styles.modalLabel, { color: theme.text }]}>
                     Series *
-                  </Text>
+                  </AppText>
                   <View style={[styles.input, { borderColor: "#444" }]}>
                     <TextInput
                       style={[styles.textInput, { color: theme.text }]}
@@ -512,9 +579,9 @@ export default function CreateRoutine() {
                   <View
                     style={[styles.modalSection, { flex: 1, marginRight: 8 }]}
                   >
-                    <Text style={[styles.modalLabel, { color: theme.text }]}>
+                    <AppText style={[styles.modalLabel, { color: theme.text }]}>
                       Reps Mínimas *
-                    </Text>
+                    </AppText>
                     <View style={[styles.input, { borderColor: "#444" }]}>
                       <TextInput
                         style={[styles.textInput, { color: theme.text }]}
@@ -535,9 +602,9 @@ export default function CreateRoutine() {
                   <View
                     style={[styles.modalSection, { flex: 1, marginLeft: 8 }]}
                   >
-                    <Text style={[styles.modalLabel, { color: theme.text }]}>
+                    <AppText style={[styles.modalLabel, { color: theme.text }]}>
                       Reps Máximas *
-                    </Text>
+                    </AppText>
                     <View style={[styles.input, { borderColor: "#444" }]}>
                       <TextInput
                         style={[styles.textInput, { color: theme.text }]}
@@ -558,9 +625,9 @@ export default function CreateRoutine() {
 
                 {/* Peso */}
                 <View style={styles.modalSection}>
-                  <Text style={[styles.modalLabel, { color: theme.text }]}>
+                  <AppText style={[styles.modalLabel, { color: theme.text }]}>
                     Peso (kg) - Opcional
-                  </Text>
+                  </AppText>
                   <View style={[styles.input, { borderColor: "#444" }]}>
                     <Ionicons name="speedometer" size={20} color={theme.text} />
                     <TextInput
@@ -578,9 +645,9 @@ export default function CreateRoutine() {
 
                 {/* Kcal */}
                 <View style={styles.modalSection}>
-                  <Text style={[styles.modalLabel, { color: theme.text }]}>
+                  <AppText style={[styles.modalLabel, { color: theme.text }]}>
                     Kcal *
-                  </Text>
+                  </AppText>
                   <View style={[styles.input, { borderColor: "#444" }]}>
                     <TextInput
                       style={[styles.textInput, { color: theme.text }]}
@@ -597,9 +664,9 @@ export default function CreateRoutine() {
 
                 {/* Minutes */}
                 <View style={styles.modalSection}>
-                  <Text style={[styles.modalLabel, { color: theme.text }]}>
+                  <AppText style={[styles.modalLabel, { color: theme.text }]}>
                     Minutos en total *
-                  </Text>
+                  </AppText>
                   <View style={[styles.input, { borderColor: "#444" }]}>
                     <TextInput
                       style={[styles.textInput, { color: theme.text }]}
@@ -616,9 +683,9 @@ export default function CreateRoutine() {
 
                 {/* Grupo muscular */}
                 <View style={styles.modalSection}>
-                  <Text style={[styles.modalLabel, { color: theme.text }]}>
+                  <AppText style={[styles.modalLabel, { color: theme.text }]}>
                     Grupo muscular *
-                  </Text>
+                  </AppText>
                   <View
                     style={[
                       styles.pickerContainer,
@@ -643,9 +710,9 @@ export default function CreateRoutine() {
 
                 {/* Intensidad */}
                 <View style={styles.modalSection}>
-                  <Text style={[styles.modalLabel, { color: theme.text }]}>
+                  <AppText style={[styles.modalLabel, { color: theme.text }]}>
                     Intensidad *
-                  </Text>
+                  </AppText>
                   <View
                     style={[
                       styles.pickerContainer,
@@ -676,9 +743,9 @@ export default function CreateRoutine() {
 
                 {/* Descripción */}
                 <View style={styles.modalSection}>
-                  <Text style={[styles.modalLabel, { color: theme.text }]}>
+                  <AppText style={[styles.modalLabel, { color: theme.text }]}>
                     Descripción (opcional)
-                  </Text>
+                  </AppText>
                   <View
                     style={[
                       styles.textareaContainer,
@@ -710,9 +777,9 @@ export default function CreateRoutine() {
                   ]}
                   onPress={handleAddEjercicio}
                 >
-                  <Text style={styles.modalAddButtonText}>
+                  <AppText style={styles.modalAddButtonText}>
                     Agregar Ejercicio
-                  </Text>
+                  </AppText>
                 </TouchableOpacity>
               </ScrollView>
             </View>
@@ -798,6 +865,7 @@ const styles = StyleSheet.create({
   textarea: {
     fontSize: 16,
     textAlignVertical: "top",
+    height: 125,
   },
   ejerciciosHeader: {
     flexDirection: "row",

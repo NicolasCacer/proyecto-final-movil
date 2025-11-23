@@ -1,4 +1,5 @@
 import { ThemeContext } from "@/context/ThemeProvider";
+import AppText from "@/utils/AppText";
 import {
   generateCalendarDays,
   getMonthName,
@@ -6,8 +7,7 @@ import {
   isToday,
 } from "@/utils/calendarUtils";
 import React, { useContext } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 interface TrainingCalendarProps {
   currentDate: Date;
   selectedDate: Date;
@@ -52,15 +52,15 @@ export default function TrainingCalendar({
     <View style={styles.container}>
       {/* Header del Calendario */}
       <View style={styles.calendarHeader}>
-        <Text style={[styles.monthText, { color: theme.text }]}>
+        <AppText style={[styles.monthText, { color: theme.text }]}>
           {getMonthName(currentDate)}
-        </Text>
+        </AppText>
         <View style={styles.monthNavigation}>
           <TouchableOpacity style={styles.navButton} onPress={onPreviousMonth}>
-            <Text style={{ color: theme.orange, fontSize: 20 }}>‹</Text>
+            <AppText style={{ color: theme.orange, fontSize: 20 }}>‹</AppText>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navButton} onPress={onNextMonth}>
-            <Text style={{ color: theme.orange, fontSize: 20 }}>›</Text>
+            <AppText style={{ color: theme.orange, fontSize: 20 }}>›</AppText>
           </TouchableOpacity>
         </View>
       </View>
@@ -69,7 +69,7 @@ export default function TrainingCalendar({
       <View style={styles.weekDaysContainer}>
         {weekDays.map((day, index) => (
           <View key={index} style={styles.weekDayItem}>
-            <Text
+            <AppText
               style={[
                 styles.weekDayText,
                 {
@@ -78,7 +78,7 @@ export default function TrainingCalendar({
               ]}
             >
               {day}
-            </Text>
+            </AppText>
           </View>
         ))}
       </View>
@@ -119,7 +119,7 @@ export default function TrainingCalendar({
                         },
                     ]}
                   >
-                    <Text
+                    <AppText
                       style={[
                         styles.dayText,
                         {
@@ -132,7 +132,7 @@ export default function TrainingCalendar({
                       ]}
                     >
                       {day}
-                    </Text>
+                    </AppText>
                   </View>
                 </TouchableOpacity>
               );
