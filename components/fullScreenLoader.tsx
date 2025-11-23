@@ -1,5 +1,8 @@
+import loading from "@/assets/lotties/loading.json";
+import AppText from "@/utils/AppText";
+import LottieView from "lottie-react-native";
 import React from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 interface FullScreenLoaderProps {
   visible: boolean;
@@ -18,7 +21,13 @@ export default function FullScreenLoader({
 
   return (
     <View style={[styles.overlay, { backgroundColor: background }]}>
-      <ActivityIndicator size={size} color={color} />
+      <LottieView
+        source={loading}
+        autoPlay
+        loop
+        style={{ width: 250, height: 250 }}
+      />
+      <AppText style={{ color: color, fontSize: 30 }}>Cargando...</AppText>
     </View>
   );
 }

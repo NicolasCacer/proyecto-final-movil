@@ -1,10 +1,12 @@
+import ai from "@/assets/lotties/ai.json";
 import { AuthContext } from "@/context/AuthContext";
 import { DataContext } from "@/context/DataContext";
 import { ThemeContext } from "@/context/ThemeProvider";
 import AppText from "@/utils/AppText";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useContext, useState } from "react";
+import { useRouter } from "expo-router";
+import LottieView from "lottie-react-native";
+import React, { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -46,7 +48,9 @@ export default function RutinaView() {
   const { routinesAPI, exercisesAPI, activitiesAPI } = useContext(DataContext);
 
   const [rutinas, setRutinas] = useState<Rutina[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [loadingAI, setLoadingAI] = useState(false);
+
   const [expandedRoutine, setExpandedRoutine] = useState<string | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(0));
@@ -129,12 +133,10 @@ export default function RutinaView() {
     setCompletados((prev) => ({ ...prev, [key]: !isCompleted }));
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      cargarRutinas();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-  );
+  useEffect(() => {
+    cargarRutinas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleRoutine = (routineId: string) => {
     setExpandedRoutine(expandedRoutine === routineId ? null : routineId);
@@ -160,7 +162,7 @@ export default function RutinaView() {
 
   const handleAIRecommendation = async () => {
     handleCloseMenu();
-
+    setLoadingAI(true);
     const prompt = `
       Eres un coach fitness profesional. Genera una rutina de ejercicios en JSON sin unidades de medida. 
       El usuario tiene las siguientes características:
@@ -324,6 +326,8 @@ export default function RutinaView() {
     } catch (err) {
       console.error("Error generando rutina IA:", err);
       Alert.alert("Error", "Ocurrió un error al generar la rutina con la IA");
+    } finally {
+      setLoadingAI(false);
     }
   };
 
@@ -333,6 +337,7 @@ export default function RutinaView() {
     handleCloseMenu();
     router.push("/create-routine");
   };
+  const [showFullDesc, setShowFullDesc] = useState(false);
 
   if (loading) {
     return (
@@ -340,6 +345,21 @@ export default function RutinaView() {
         <ActivityIndicator size="large" color={theme.orange} />
         <AppText style={[styles.loadingText, { color: theme.text }]}>
           Cargando rutinas...
+        </AppText>
+      </View>
+    );
+  }
+  if (loadingAI) {
+    return (
+      <View style={styles.aiLoaderContainer} pointerEvents="auto">
+        <LottieView
+          source={ai}
+          autoPlay
+          loop
+          style={{ width: 200, height: 200 }}
+        />
+        <AppText style={[styles.loadingText, { color: theme.text }]}>
+          La IA está creando tu rutina...
         </AppText>
       </View>
     );
@@ -491,27 +511,23 @@ export default function RutinaView() {
                     >
                       {rutina.name}
                     </AppText>
-                    {rutina.description && (
-                      <AppText
-                        style={[styles.rutinaDescripcion, { color: "#999" }]}
-                      >
-                        {/* Extraer y mostrar el día asignado */}
-                        {(() => {
-                          const diaMatch =
-                            rutina.description.match(/Día:\s*([\p{L}]+)/u);
-                          if (diaMatch) {
-                            const diaAsignado = diaMatch[1];
-                            const descripcionSinDia = rutina.description
-                              .replace(/ \| Día:\s*[\p{L}]+/u, "")
-                              .replace(/Día:\s*[\p{L}]+/u, "");
-                            return descripcionSinDia
-                              ? `${descripcionSinDia} • ${diaAsignado}`
-                              : diaAsignado;
-                          }
-                          return rutina.description;
-                        })()}
+                    <AppText
+                      style={[
+                        styles.rutinaDescripcion,
+                        { color: "#999", marginRight: 5 },
+                      ]}
+                      numberOfLines={showFullDesc ? undefined : 1}
+                      ellipsizeMode="tail"
+                    >
+                      {rutina.description}
+                    </AppText>
+                    <TouchableOpacity
+                      onPress={() => setShowFullDesc(!showFullDesc)}
+                    >
+                      <AppText style={{ color: theme.orange, fontSize: 14 }}>
+                        {showFullDesc ? "Ver menos" : "Ver más"}
                       </AppText>
-                    )}
+                    </TouchableOpacity>
                   </View>
                 </View>
 
@@ -756,6 +772,12 @@ export default function RutinaView() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  aiLoaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingBottom: 150,
   },
   contentContainer: {
     padding: 20,

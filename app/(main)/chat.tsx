@@ -1,6 +1,8 @@
+import Typing from "@/assets/lotties/typing.json";
 import { BubbleChat } from "@/components/bubbleChat";
 import { DataContext } from "@/context/DataContext";
 import { ThemeContext } from "@/context/ThemeProvider";
+import LottieView from "lottie-react-native";
 import { useContext, useEffect, useRef, useState } from "react";
 import {
   Keyboard,
@@ -23,6 +25,7 @@ export default function Chat() {
   const { messagesAPI } = useContext(DataContext);
   const scrollRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
+  const [loading, setLoading] = useState(false);
 
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [inputText, setInputText] = useState("");
@@ -35,6 +38,7 @@ export default function Chat() {
   // -------------------------------------------
   async function sendToAI(prompt: string): Promise<string> {
     try {
+      setLoading(true);
       const response = await fetch(
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
         {
@@ -62,6 +66,8 @@ export default function Chat() {
     } catch (err) {
       console.error("ERROR GEMINI:", err);
       return "Se produjo un error al hablar con la IA 😵";
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -180,6 +186,22 @@ export default function Chat() {
           {messages.map((msg, i) => (
             <BubbleChat key={i} text={msg.text} isUser={msg.isUser} />
           ))}
+          {/* Loader como bubbleChat */}
+          {loading && (
+            <BubbleChat isUser={false} text="">
+              <LottieView
+                source={Typing}
+                autoPlay
+                style={{
+                  width: 40,
+                  height: 18,
+                  padding: 0,
+                  margin: 0,
+                  transform: [{ scale: 2.5 }],
+                }}
+              />
+            </BubbleChat>
+          )}
         </ScrollView>
 
         {/* BARRA INFERIOR */}
