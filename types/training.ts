@@ -1,6 +1,6 @@
 export interface Training {
   id: string;
-  fecha: string; // formato "YYYY-MM-DD"
+  fecha: string;
   dia: string;
   ejercicio: string;
   estado: "Programado" | "Completado" | "Pendiente";

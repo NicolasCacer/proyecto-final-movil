@@ -37,6 +37,8 @@ interface Rutina {
 
 export default function RutinaView() {
   const themeContext = useContext(ThemeContext);
+  const [completados, setCompletados] = useState<Record<string, boolean>>({});
+
   const router = useRouter();
   const { routinesAPI, exercisesAPI, activitiesAPI } = useContext(DataContext);
 
@@ -46,28 +48,37 @@ export default function RutinaView() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(0));
 
-  // Cargar rutinas y ejercicios
   const cargarRutinas = async () => {
     setLoading(true);
     try {
       const rutinasDB = await routinesAPI.getAll();
       const ejerciciosDB = await exercisesAPI.getAll();
+      const actividadesDB = await activitiesAPI.getAll(); // <-- Traer actividades
 
-      if (!rutinasDB || !ejerciciosDB) {
+      if (!rutinasDB || !ejerciciosDB || !actividadesDB) {
         setRutinas([]);
+        setCompletados({});
         setLoading(false);
         return;
       }
 
-      // Agrupar ejercicios por rutina (nota: en tu esquema actual,
-      // los ejercicios NO están vinculados directamente a rutinas,
-      // solo a través de activities. Por ahora, mostramos TODOS los ejercicios
-      // bajo cada rutina como ejemplo)
+      // Map para completados solo del día de hoy
+      const completadosMap: Record<string, boolean> = {};
+      actividadesDB.forEach((act) => {
+        if (act.created_at && esHoy(act.created_at)) {
+          const key = `${act.routine_id}_${act.exercise_id}`;
+          completadosMap[key] = true;
+        }
+      });
+      setCompletados(completadosMap);
+
       const rutinasConEjercicios: Rutina[] = rutinasDB.map((rutina: any) => ({
         id: rutina.id,
         name: rutina.name,
         description: rutina.description,
-        ejercicios: ejerciciosDB, // Todos los ejercicios por ahora
+        ejercicios: ejerciciosDB.filter(
+          (ejercicio: any) => ejercicio.routine_id === rutina.id
+        ),
       }));
 
       setRutinas(rutinasConEjercicios);
@@ -76,6 +87,43 @@ export default function RutinaView() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const esHoy = (fecha: string | Date) => {
+    const f = new Date(fecha); // Convierte UTC a local automáticamente
+    const hoy = new Date();
+    return (
+      f.getFullYear() === hoy.getFullYear() &&
+      f.getMonth() === hoy.getMonth() &&
+      f.getDate() === hoy.getDate()
+    );
+  };
+
+  const handleCompleteExercise = async (
+    routineId: string,
+    exerciseId: string
+  ) => {
+    const key = `${routineId}_${exerciseId}`;
+    const isCompleted = completados[key];
+
+    if (isCompleted) {
+      const actividadesDB = await activitiesAPI.getAll();
+      const act = actividadesDB?.find(
+        (a) =>
+          a.exercise_id === exerciseId &&
+          a.routine_id === routineId &&
+          a.created_at &&
+          esHoy(a.created_at)
+      );
+      if (act) await activitiesAPI.delete(act.id);
+    } else {
+      await activitiesAPI.create({
+        routine_id: routineId,
+        exercise_id: exerciseId,
+      });
+    }
+
+    setCompletados((prev) => ({ ...prev, [key]: !isCompleted }));
   };
 
   useFocusEffect(
@@ -87,20 +135,6 @@ export default function RutinaView() {
 
   const toggleRoutine = (routineId: string) => {
     setExpandedRoutine(expandedRoutine === routineId ? null : routineId);
-  };
-
-  const handleCompleteExercise = async (
-    routineId: string,
-    exerciseId: string
-  ) => {
-    // Registrar actividad completada
-    await activitiesAPI.create({
-      routine_id: routineId,
-      exercise_id: exerciseId,
-    });
-
-    // Recargar rutinas
-    await cargarRutinas();
   };
 
   const handleOpenMenu = () => {
@@ -294,12 +328,12 @@ export default function RutinaView() {
                         {/* Extraer y mostrar el día asignado */}
                         {(() => {
                           const diaMatch =
-                            rutina.description.match(/Día: (\w+)/);
+                            rutina.description.match(/Día:\s*([\p{L}]+)/u);
                           if (diaMatch) {
                             const diaAsignado = diaMatch[1];
                             const descripcionSinDia = rutina.description
-                              .replace(/ \| Día: \w+/, "")
-                              .replace(/Día: \w+/, "");
+                              .replace(/ \| Día:\s*[\p{L}]+/u, "")
+                              .replace(/Día:\s*[\p{L}]+/u, "");
                             return descripcionSinDia
                               ? `${descripcionSinDia} • ${diaAsignado}`
                               : diaAsignado;
@@ -350,9 +384,17 @@ export default function RutinaView() {
                           }
                         >
                           <Ionicons
-                            name="radio-button-off"
+                            name={
+                              completados[`${rutina.id}_${ejercicio.id}`]
+                                ? "checkmark-circle"
+                                : "ellipse-outline"
+                            }
                             size={20}
-                            color="#666"
+                            color={
+                              completados[`${rutina.id}_${ejercicio.id}`]
+                                ? theme.orange
+                                : "#666"
+                            }
                           />
                         </TouchableOpacity>
 
@@ -400,23 +442,39 @@ export default function RutinaView() {
                       </View>
                     </View>
                   ))}
+                  <View style={styles.startButtonsContainer}>
+                    {/* Botón de Entrenar solo*/}
+                    <TouchableOpacity
+                      style={[
+                        styles.entrenarButton,
+                        { backgroundColor: theme.orange },
+                      ]}
+                      onPress={() => {
+                        console.log("Iniciar entrenamiento:", rutina.name);
+                        // Aquí irá la lógica futura
+                      }}
+                    >
+                      <Ionicons name="play-circle" size={24} color="#fff" />
+                      <Text style={styles.entrenarButtonText}>Empezar</Text>
+                    </TouchableOpacity>
 
-                  {/* Botón de Entrenar */}
-                  <TouchableOpacity
-                    style={[
-                      styles.entrenarButton,
-                      { backgroundColor: theme.orange },
-                    ]}
-                    onPress={() => {
-                      console.log("Iniciar entrenamiento:", rutina.name);
-                      // Aquí irá la lógica futura
-                    }}
-                  >
-                    <Ionicons name="play-circle" size={24} color="#fff" />
-                    <Text style={styles.entrenarButtonText}>
-                      Entrenar en Conjunto
-                    </Text>
-                  </TouchableOpacity>
+                    {/* Botón de Entrenar en Conjunto */}
+                    <TouchableOpacity
+                      style={[
+                        styles.entrenarButton,
+                        { backgroundColor: theme.red },
+                      ]}
+                      onPress={() => {
+                        console.log("Iniciar entrenamiento:", rutina.name);
+                        // Aquí irá la lógica futura
+                      }}
+                    >
+                      <Ionicons name="play-circle" size={24} color="#fff" />
+                      <Text style={styles.entrenarButtonText}>
+                        Multi Entrenar
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
             </View>
@@ -714,8 +772,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    padding: 16,
-    margin: 12,
+    paddingVertical: 5,
+    paddingHorizontal: 15,
+
     borderRadius: 12,
     gap: 10,
     elevation: 4,
@@ -728,5 +787,12 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 17,
     fontWeight: "700",
+  },
+  startButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 15,
+    gap: 10,
   },
 });

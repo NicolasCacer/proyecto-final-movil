@@ -29,13 +29,17 @@ export default function TrainingCalendar({
 
   const { theme } = themeContext;
 
-  const weekDays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  const weekDays = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
 
   const hasTraining = (day: number): boolean => {
-    const dateStr = `${currentDate.getFullYear()}-${String(
-      currentDate.getMonth() + 1
-    ).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    return trainings.includes(dateStr);
+    const date = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      day
+    );
+    const dayName = date.toLocaleDateString("es-ES", { weekday: "long" });
+    const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+    return trainings.includes(capitalizedDay);
   };
 
   const handleDayPress = (day: number) => {
@@ -84,52 +88,52 @@ export default function TrainingCalendar({
         {generateCalendarDays(currentDate).map((week, weekIndex) => (
           <View key={weekIndex} style={styles.weekRow}>
             {week.map((day, dayIndex) => {
-              const hasTrain = day && hasTraining(day);
-              const isDaySelected =
-                day && isSelected(day, selectedDate, currentDate);
-              const isDayToday = day && isToday(day, currentDate);
+              if (!day) return <View key={dayIndex} style={styles.dayCell} />;
+
+              const isDaySelected = isSelected(day, selectedDate, currentDate);
+              const isDayToday = isToday(day, currentDate);
+              const hasTrain = hasTraining(day);
 
               return (
                 <TouchableOpacity
                   key={dayIndex}
                   style={styles.dayCell}
-                  onPress={() => day && handleDayPress(day)}
-                  disabled={!day}
+                  onPress={() => handleDayPress(day)}
                 >
-                  {day ? (
-                    <View
-                      style={[
-                        styles.dayCircle,
-                        isDaySelected && {
-                          backgroundColor: theme.orange,
+                  <View
+                    style={[
+                      styles.dayCircle,
+                      // Día seleccionado
+                      isDaySelected && { backgroundColor: theme.orange },
+                      // Día de entrenamiento pero no seleccionado ni hoy
+                      !isDaySelected &&
+                        !isDayToday &&
+                        hasTrain && {
+                          backgroundColor: "rgba(255,126,51,0.2)", // mismo color del puntito pero más visible
                         },
-                        hasTrain &&
-                          !isDaySelected && {
-                            backgroundColor: "rgba(255, 126, 51, 0.2)",
-                          },
-                        isDayToday &&
-                          !isDaySelected && {
-                            borderWidth: 2,
-                            borderColor: theme.orange,
-                          },
+                      // Día de hoy (border)
+                      !isDaySelected &&
+                        isDayToday && {
+                          borderWidth: 2,
+                          borderColor: theme.orange,
+                        },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.dayText,
+                        {
+                          color: isDaySelected
+                            ? "#fff"
+                            : hasTrain && !isDaySelected
+                            ? theme.orange
+                            : theme.text,
+                        },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.dayText,
-                          {
-                            color: isDaySelected
-                              ? "#fff"
-                              : hasTrain
-                              ? theme.orange
-                              : theme.text,
-                          },
-                        ]}
-                      >
-                        {day}
-                      </Text>
-                    </View>
-                  ) : null}
+                      {day}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               );
             })}
