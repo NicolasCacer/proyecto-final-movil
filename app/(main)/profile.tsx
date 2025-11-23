@@ -1,3 +1,4 @@
+import FullScreenLoader from "@/components/fullScreenLoader";
 import { AuthContext } from "@/context/AuthContext";
 import { ThemeContext } from "@/context/ThemeProvider";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -23,6 +24,7 @@ export default function Profile() {
   const themeContext = useContext(ThemeContext);
   const authContext = useContext(AuthContext);
   const router = useRouter();
+  const [loading, setLoader] = useState(false);
   const [activeTab, setActiveTab] = useState("datos");
 
   const [formData, setFormData] = useState({
@@ -135,6 +137,7 @@ export default function Profile() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <FullScreenLoader visible={loading} />
       {/* Header con Segmented Control */}
       <View style={styles.headerContainer}>
         <LinearGradient
@@ -492,8 +495,10 @@ export default function Profile() {
             <TouchableOpacity
               style={[styles.configItem, styles.logoutItem]}
               onPress={async () => {
+                setLoader(true);
                 await authContext.logout();
                 router.push("/(auth)/login");
+                setLoader(false);
               }}
             >
               <View style={styles.configLeft}>

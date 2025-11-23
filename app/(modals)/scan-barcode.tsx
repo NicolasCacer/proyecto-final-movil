@@ -1,10 +1,11 @@
 import { DataContext } from "@/context/DataContext";
 import { ThemeContext } from "@/context/ThemeProvider";
+import AppText from "@/utils/AppText";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import React, { useContext, useRef, useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ScanBarcode() {
@@ -21,9 +22,9 @@ export default function ScanBarcode() {
   if (!permission) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <Text style={{ color: theme.text }}>
+        <AppText style={{ color: theme.text }}>
           Solicitando permisos de cámara...
-        </Text>
+        </AppText>
       </View>
     );
   }
@@ -35,25 +36,27 @@ export default function ScanBarcode() {
       >
         <View style={styles.permissionContainer}>
           <Ionicons name="camera-outline" size={64} color="#666" />
-          <Text style={[styles.permissionTitle, { color: theme.text }]}>
+          <AppText style={[styles.permissionTitle, { color: theme.text }]}>
             Permiso de Cámara
-          </Text>
-          <Text style={[styles.permissionText, { color: "#999" }]}>
+          </AppText>
+          <AppText style={[styles.permissionText, { color: "#999" }]}>
             Necesitamos acceso a tu cámara para escanear códigos de barras
-          </Text>
+          </AppText>
           <TouchableOpacity
             style={[styles.permissionButton, { backgroundColor: theme.orange }]}
             onPress={requestPermission}
           >
-            <Text style={styles.permissionButtonText}>Permitir Cámara</Text>
+            <AppText style={styles.permissionButtonText}>
+              Permitir Cámara
+            </AppText>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.cancelButton}
             onPress={() => router.back()}
           >
-            <Text style={[styles.cancelButtonText, { color: theme.text }]}>
+            <AppText style={[styles.cancelButtonText, { color: theme.text }]}>
               Cancelar
-            </Text>
+            </AppText>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -175,7 +178,7 @@ export default function ScanBarcode() {
         >
           <Ionicons name="close" size={28} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Escanear Código</Text>
+        <AppText style={styles.headerTitle}>Escanear Código</AppText>
         <View style={{ width: 28 }} />
       </View>
 
@@ -215,12 +218,12 @@ export default function ScanBarcode() {
           <View style={styles.bottomOverlay}>
             <View style={styles.instructionsContainer}>
               <Ionicons name="scan" size={32} color="#fff" />
-              <Text style={styles.instructionsText}>
+              <AppText style={styles.instructionsText}>
                 {scanned ? "Código escaneado" : "Apunta al código de barras"}
-              </Text>
-              <Text style={styles.instructionsSubtext}>
+              </AppText>
+              <AppText style={styles.instructionsSubtext}>
                 Centra el código en el marco
-              </Text>
+              </AppText>
             </View>
           </View>
         </View>
@@ -236,7 +239,7 @@ export default function ScanBarcode() {
           }}
         >
           <Ionicons name="refresh" size={24} color="#fff" />
-          <Text style={styles.rescanButtonText}>Escanear Otro</Text>
+          <AppText style={styles.rescanButtonText}>Escanear Otro</AppText>
         </TouchableOpacity>
       )}
     </SafeAreaView>

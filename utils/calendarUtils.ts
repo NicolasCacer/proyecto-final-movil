@@ -1,19 +1,8 @@
 export const getMonthName = (date: Date): string => {
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-  return `${months[date.getMonth()]} ${date.getFullYear()}`;
+  const month = date.toLocaleDateString("es-ES", { month: "long" });
+  return (
+    month.charAt(0).toUpperCase() + month.slice(1) + ` ${date.getFullYear()}`
+  );
 };
 
 export const getDaysInMonth = (date: Date): number => {

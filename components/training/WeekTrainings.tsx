@@ -1,9 +1,9 @@
 import { DataContext } from "@/context/DataContext";
 import { ThemeContext } from "@/context/ThemeProvider";
 import { Training } from "@/types/training";
+import AppText from "@/utils/AppText";
 import React, { useContext, useEffect, useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-
+import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
 interface WeekTrainingsProps {
   selectedDate: Date;
   onDelete?: () => void; // Callback para refrescar la lista después de eliminar
@@ -110,9 +110,9 @@ export default function WeekTrainings({
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.title, { color: theme.text }]}>
+      <AppText style={[styles.title, { color: theme.text }]}>
         Entrenamientos del día
-      </Text>
+      </AppText>
 
       {trainings.length > 0 ? (
         trainings.map((entrenamiento, index) => (
@@ -121,12 +121,12 @@ export default function WeekTrainings({
             style={[styles.card, { backgroundColor: theme.tabsBack }]}
           >
             <View style={styles.left}>
-              <Text style={[styles.dia, { color: theme.text }]}>
+              <AppText style={[styles.dia, { color: theme.text }]}>
                 {diaCapitalizado}
-              </Text>
-              <Text style={[styles.ejercicio, { color: theme.text }]}>
+              </AppText>
+              <AppText style={[styles.ejercicio, { color: theme.text }]}>
                 {entrenamiento.ejercicio}
-              </Text>
+              </AppText>
             </View>
             <TouchableOpacity
               style={[
@@ -137,16 +137,16 @@ export default function WeekTrainings({
                 handleDelete(entrenamiento.id, entrenamiento.ejercicio)
               }
             >
-              <Text style={[styles.deleteText, { color: theme.red }]}>
+              <AppText style={[styles.deleteText, { color: theme.red }]}>
                 Eliminar
-              </Text>
+              </AppText>
             </TouchableOpacity>
           </View>
         ))
       ) : (
-        <Text style={[styles.noTrainingsText, { color: "#999" }]}>
+        <AppText style={[styles.noTrainingsText, { color: "#999" }]}>
           No hay entrenamientos programados para este día
-        </Text>
+        </AppText>
       )}
     </View>
   );

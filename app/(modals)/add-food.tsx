@@ -1,5 +1,6 @@
 import { DataContext } from "@/context/DataContext";
 import { ThemeContext } from "@/context/ThemeProvider";
+import AppText from "@/utils/AppText";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import React, { useContext, useState } from "react";
@@ -10,7 +11,6 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -134,7 +134,9 @@ export default function AddFood() {
           onPress={() => router.back()}
         >
           <Ionicons name="chevron-back" size={24} color={theme.text} />
-          <Text style={[styles.backText, { color: theme.text }]}>Cancelar</Text>
+          <AppText style={[styles.backText, { color: theme.text }]}>
+            Cancelar
+          </AppText>
         </TouchableOpacity>
       </View>
 
@@ -144,44 +146,44 @@ export default function AddFood() {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.stepContainer}>
-          <Text style={[styles.stepTitle, { color: theme.text }]}>
+          <AppText style={[styles.stepTitle, { color: theme.text }]}>
             Alimentos
-          </Text>
-          <Text style={[styles.stepSubtitle, { color: "#999" }]}>
+          </AppText>
+          <AppText style={[styles.stepSubtitle, { color: "#999" }]}>
             Agrega productos que quieras registrar en tu base de datos
-          </Text>
+          </AppText>
 
           {alimentos.length > 0 && (
             <View
               style={[styles.resumenCard, { backgroundColor: theme.tabsBack }]}
             >
-              <Text style={[styles.resumenTitle, { color: theme.text }]}>
+              <AppText style={[styles.resumenTitle, { color: theme.text }]}>
                 Resumen
-              </Text>
+              </AppText>
               <View style={styles.macrosGrid}>
                 <View style={styles.macroItem}>
-                  <Text style={[styles.macroValue, { color: theme.orange }]}>
+                  <AppText style={[styles.macroValue, { color: theme.orange }]}>
                     {totalCalorias}
-                  </Text>
-                  <Text style={styles.macroLabel}>kcal</Text>
+                  </AppText>
+                  <AppText style={styles.macroLabel}>kcal</AppText>
                 </View>
                 <View style={styles.macroItem}>
-                  <Text style={[styles.macroValue, { color: theme.text }]}>
+                  <AppText style={[styles.macroValue, { color: theme.text }]}>
                     {totalProteina}g
-                  </Text>
-                  <Text style={styles.macroLabel}>proteínas</Text>
+                  </AppText>
+                  <AppText style={styles.macroLabel}>proteínas</AppText>
                 </View>
                 <View style={styles.macroItem}>
-                  <Text style={[styles.macroValue, { color: theme.text }]}>
+                  <AppText style={[styles.macroValue, { color: theme.text }]}>
                     {totalCarbohidratos}g
-                  </Text>
-                  <Text style={styles.macroLabel}>carbohidratos</Text>
+                  </AppText>
+                  <AppText style={styles.macroLabel}>carbohidratos</AppText>
                 </View>
                 <View style={styles.macroItem}>
-                  <Text style={[styles.macroValue, { color: theme.text }]}>
+                  <AppText style={[styles.macroValue, { color: theme.text }]}>
                     {totalGrasas}g
-                  </Text>
-                  <Text style={styles.macroLabel}>grasas</Text>
+                  </AppText>
+                  <AppText style={styles.macroLabel}>grasas</AppText>
                 </View>
               </View>
             </View>
@@ -193,12 +195,12 @@ export default function AddFood() {
                 style={[styles.emptyState, { backgroundColor: theme.tabsBack }]}
               >
                 <Ionicons name="fast-food-outline" size={48} color="#666" />
-                <Text style={[styles.emptyText, { color: "#999" }]}>
+                <AppText style={[styles.emptyText, { color: "#999" }]}>
                   No hay alimentos agregados
-                </Text>
-                <Text style={[styles.emptySubtext, { color: "#666" }]}>
+                </AppText>
+                <AppText style={[styles.emptySubtext, { color: "#666" }]}>
                   Presiona el botón + para agregar
-                </Text>
+                </AppText>
               </View>
             ) : (
               alimentos.map((alimento) => (
@@ -211,15 +213,15 @@ export default function AddFood() {
                 >
                   <View style={styles.alimentoHeader}>
                     <View style={styles.alimentoInfo}>
-                      <Text
+                      <AppText
                         style={[styles.alimentoNombre, { color: theme.text }]}
                       >
                         {alimento.nombre}
-                      </Text>
+                      </AppText>
                       {alimento.marca ? (
-                        <Text style={styles.alimentoPorcion}>
+                        <AppText style={styles.alimentoPorcion}>
                           {alimento.marca}
-                        </Text>
+                        </AppText>
                       ) : null}
                     </View>
                     <TouchableOpacity
@@ -233,21 +235,21 @@ export default function AddFood() {
                     </TouchableOpacity>
                   </View>
                   <View style={styles.alimentoMacros}>
-                    <Text style={styles.alimentoMacro}>
+                    <AppText style={styles.alimentoMacro}>
                       {alimento.kcal} kcal
-                    </Text>
-                    <Text style={styles.alimentoMacro}> • </Text>
-                    <Text style={styles.alimentoMacro}>
+                    </AppText>
+                    <AppText style={styles.alimentoMacro}> • </AppText>
+                    <AppText style={styles.alimentoMacro}>
                       {alimento.proteins}g proteínas
-                    </Text>
-                    <Text style={styles.alimentoMacro}> • </Text>
-                    <Text style={styles.alimentoMacro}>
+                    </AppText>
+                    <AppText style={styles.alimentoMacro}> • </AppText>
+                    <AppText style={styles.alimentoMacro}>
                       {alimento.carbohydrates}g carbs
-                    </Text>
-                    <Text style={styles.alimentoMacro}> • </Text>
-                    <Text style={styles.alimentoMacro}>
+                    </AppText>
+                    <AppText style={styles.alimentoMacro}> • </AppText>
+                    <AppText style={styles.alimentoMacro}>
                       {alimento.fats}g grasas
-                    </Text>
+                    </AppText>
                   </View>
                 </View>
               ))
@@ -259,7 +261,7 @@ export default function AddFood() {
             onPress={() => setModalVisible(true)}
           >
             <Ionicons name="add" size={24} color="#fff" />
-            <Text style={styles.addButtonText}>Agregar Producto</Text>
+            <AppText style={styles.addButtonText}>Agregar Producto</AppText>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -269,7 +271,7 @@ export default function AddFood() {
           style={[styles.actionButton, { backgroundColor: theme.orange }]}
           onPress={handleGuardarTodos}
         >
-          <Text style={styles.actionButtonText}>Guardar Productos</Text>
+          <AppText style={styles.actionButtonText}>Guardar Productos</AppText>
         </TouchableOpacity>
       </View>
 
@@ -293,9 +295,9 @@ export default function AddFood() {
               ]}
             >
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: theme.text }]}>
+                <AppText style={[styles.modalTitle, { color: theme.text }]}>
                   Nuevo Producto
-                </Text>
+                </AppText>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                   <Ionicons name="close" size={24} color={theme.text} />
                 </TouchableOpacity>
@@ -303,9 +305,9 @@ export default function AddFood() {
 
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.modalInputGroup}>
-                  <Text style={[styles.label, { color: theme.text }]}>
+                  <AppText style={[styles.label, { color: theme.text }]}>
                     Nombre *
-                  </Text>
+                  </AppText>
                   <TextInput
                     style={[
                       styles.input,
@@ -321,9 +323,9 @@ export default function AddFood() {
                 </View>
 
                 <View style={styles.modalInputGroup}>
-                  <Text style={[styles.label, { color: theme.text }]}>
+                  <AppText style={[styles.label, { color: theme.text }]}>
                     Marca (opcional)
-                  </Text>
+                  </AppText>
                   <TextInput
                     style={[
                       styles.input,
@@ -340,9 +342,9 @@ export default function AddFood() {
 
                 <View style={styles.row}>
                   <View style={[styles.modalInputGroup, styles.halfWidth]}>
-                    <Text style={[styles.label, { color: theme.text }]}>
+                    <AppText style={[styles.label, { color: theme.text }]}>
                       kcal *
-                    </Text>
+                    </AppText>
                     <TextInput
                       style={[
                         styles.input,
@@ -359,9 +361,9 @@ export default function AddFood() {
                   </View>
 
                   <View style={[styles.modalInputGroup, styles.halfWidth]}>
-                    <Text style={[styles.label, { color: theme.text }]}>
+                    <AppText style={[styles.label, { color: theme.text }]}>
                       Proteínas (g)
-                    </Text>
+                    </AppText>
                     <TextInput
                       style={[
                         styles.input,
@@ -380,9 +382,9 @@ export default function AddFood() {
 
                 <View style={styles.row}>
                   <View style={[styles.modalInputGroup, styles.halfWidth]}>
-                    <Text style={[styles.label, { color: theme.text }]}>
+                    <AppText style={[styles.label, { color: theme.text }]}>
                       Carbohidratos (g)
-                    </Text>
+                    </AppText>
                     <TextInput
                       style={[
                         styles.input,
@@ -402,9 +404,9 @@ export default function AddFood() {
                   </View>
 
                   <View style={[styles.modalInputGroup, styles.halfWidth]}>
-                    <Text style={[styles.label, { color: theme.text }]}>
+                    <AppText style={[styles.label, { color: theme.text }]}>
                       Grasas (g)
-                    </Text>
+                    </AppText>
                     <TextInput
                       style={[
                         styles.input,
@@ -428,7 +430,7 @@ export default function AddFood() {
                   ]}
                   onPress={handleAgregarAlimento}
                 >
-                  <Text style={styles.modalButtonText}>Agregar</Text>
+                  <AppText style={styles.modalButtonText}>Agregar</AppText>
                 </TouchableOpacity>
               </ScrollView>
             </View>
