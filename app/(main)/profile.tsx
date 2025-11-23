@@ -1,5 +1,7 @@
+import CameraModal from "@/components/cameraModal";
 import { AuthContext } from "@/context/AuthContext";
 import { ThemeContext } from "@/context/ThemeProvider";
+import { supabase } from "@/utils/supabase";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -24,6 +26,10 @@ export default function Profile() {
   const authContext = useContext(AuthContext);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("datos");
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState("");
 
   const [formData, setFormData] = useState({
     nombre: authContext.user?.name || "",
@@ -32,12 +38,32 @@ export default function Profile() {
     contraseña: "••••••••",
   });
 
+  const [originalData, setOriginalData] = useState({
+    nombre: authContext.user?.name || "",
+    apellido: authContext.user?.lastname || "",
+  });
+
   // Estado para historial de peso
   const [historialPeso, setHistorialPeso] = useState<
     { fecha: string; peso: number; id: string }[]
   >([]);
   const [modalPesoVisible, setModalPesoVisible] = useState(false);
   const [nuevoPeso, setNuevoPeso] = useState("");
+
+  // Cargar avatar del usuario
+  const cargarAvatar = useCallback(async () => {
+    if (!authContext.user?.id) return;
+
+    const { data } = await supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", authContext.user.id)
+      .single();
+
+    if (data?.avatar_url) {
+      setAvatarUrl(data.avatar_url);
+    }
+  }, [authContext.user?.id]);
 
   // Cargar historial de peso desde activities
   const cargarHistorialPeso = useCallback(async () => {
@@ -56,7 +82,21 @@ export default function Profile() {
   useFocusEffect(
     useCallback(() => {
       cargarHistorialPeso();
-    }, [cargarHistorialPeso])
+      cargarAvatar();
+      // Actualizar formData cuando cambia el usuario
+      if (authContext.user) {
+        setFormData({
+          nombre: authContext.user.name,
+          apellido: authContext.user.lastname,
+          correo: authContext.user.email,
+          contraseña: "••••••••",
+        });
+        setOriginalData({
+          nombre: authContext.user.name,
+          apellido: authContext.user.lastname,
+        });
+      }
+    }, [cargarHistorialPeso, cargarAvatar, authContext.user])
   );
 
   const { theme, toggleTheme } = themeContext;
@@ -91,6 +131,62 @@ export default function Profile() {
       return `Bajar ${Math.abs(diferencia).toFixed(1)} kg`;
     } else {
       return "Mantener peso";
+    }
+  };
+
+  // Función para subir imagen
+  const uploadImage = async (uri: string) => {
+    try {
+      if (!authContext.user?.id) {
+        Alert.alert("Error", "Usuario no encontrado");
+        return;
+      }
+
+      setIsSaving(true);
+
+      // Fetch image from URI
+      const response = await fetch(uri);
+      const arrayBuffer = await response.arrayBuffer();
+      const file = new Uint8Array(arrayBuffer);
+
+      // Get file extension (default to jpg if missing)
+      const ext = uri.split(".").pop() || "jpg";
+
+      // Use a fixed filename per user (no Date.now to avoid duplicates)
+      const fileName = `${authContext.user.id}.${ext}`;
+
+      // Upload image with upsert: true (replace if it already exists)
+      const { error: uploadError } = await supabase.storage
+        .from("profilesBucket")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get the public URL for the uploaded file
+      const { data: publicData } = supabase.storage
+        .from("profilesBucket")
+        .getPublicUrl(fileName);
+
+      // Add a cache-busting parameter (forces refresh)
+      const freshUrl = `${publicData.publicUrl}?t=${Date.now()}`;
+
+      // Update profile in database
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: freshUrl })
+        .eq("id", authContext.user.id);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setAvatarUrl(freshUrl);
+
+      setIsSaving(false);
+      Alert.alert("¡Éxito!", "Foto de perfil actualizada correctamente");
+    } catch (err: any) {
+      console.log("Error uploading image:", err);
+      setIsSaving(false);
+      Alert.alert("Error", err.message || "No se pudo subir la imagen");
     }
   };
 
@@ -130,6 +226,51 @@ export default function Profile() {
       } else {
         Alert.alert("Error", "No se pudo actualizar el peso");
       }
+    }
+  };
+
+  // Función para activar/desactivar edición
+  const handleToggleEdit = () => {
+    if (isEditing) {
+      // Cancelar edición - restaurar datos originales
+      setFormData({
+        ...formData,
+        nombre: originalData.nombre,
+        apellido: originalData.apellido,
+      });
+      setIsEditing(false);
+    } else {
+      // Activar edición
+      setIsEditing(true);
+    }
+  };
+
+  // Función para guardar cambios
+  const handleSaveChanges = async () => {
+    if (!formData.nombre.trim() || !formData.apellido.trim()) {
+      Alert.alert("Error", "El nombre y apellido no pueden estar vacíos");
+      return;
+    }
+
+    setIsSaving(true);
+
+    const success = await authContext.updateUser({
+      name: formData.nombre.trim(),
+      lastname: formData.apellido.trim(),
+    });
+
+    setIsSaving(false);
+
+    if (success) {
+      setOriginalData({
+        nombre: formData.nombre,
+        apellido: formData.apellido,
+      });
+      setIsEditing(false);
+      await authContext.refreshUser();
+      Alert.alert("¡Éxito!", "Datos actualizados correctamente");
+    } else {
+      Alert.alert("Error", "No se pudieron guardar los cambios");
     }
   };
 
@@ -187,21 +328,63 @@ export default function Profile() {
               <Text style={[styles.headerTitle, { color: theme.text }]}>
                 Datos personales
               </Text>
-              <TouchableOpacity
-                style={[styles.editButton, { backgroundColor: theme.tabsBack }]}
-              >
-                <Ionicons name="pencil" size={20} color={theme.text} />
-              </TouchableOpacity>
+              {!isEditing ? (
+                <TouchableOpacity
+                  style={[
+                    styles.editButton,
+                    { backgroundColor: theme.tabsBack },
+                  ]}
+                  onPress={handleToggleEdit}
+                >
+                  <Ionicons name="pencil" size={20} color={theme.text} />
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.editActionsContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: theme.tabsBack },
+                    ]}
+                    onPress={handleToggleEdit}
+                    disabled={isSaving}
+                  >
+                    <Ionicons name="close" size={20} color={theme.text} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: theme.orange },
+                    ]}
+                    onPress={handleSaveChanges}
+                    disabled={isSaving}
+                  >
+                    <Ionicons name="checkmark" size={20} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
 
-            {/* Profile Image */}
+            {/* Profile Image con botón de editar */}
             <View style={styles.imageContainer}>
-              <Image
-                source={{
-                  uri: "https://img.freepik.com/premium-vector/default-avatar-profile-icon-social-media-user-image-gray-avatar-icon-blank-profile-silhouette-vector-illustration_561158-3383.jpg?semt=ais_hybrid&w=740&q=80",
-                }}
-                style={[styles.profileImage, { borderColor: theme.orange }]}
-              />
+              <TouchableOpacity
+                onPress={() => setShowCamera(true)}
+                style={styles.avatarContainer}
+                disabled={isSaving}
+              >
+                <Image
+                  source={{
+                    uri:
+                      avatarUrl ||
+                      "https://img.freepik.com/premium-vector/default-avatar-profile-icon-social-media-user-image-gray-avatar-icon-blank-profile-silhouette-vector-illustration_561158-3383.jpg?semt=ais_hybrid&w=740&q=80",
+                  }}
+                  style={[styles.profileImage, { borderColor: theme.orange }]}
+                />
+                <View
+                  style={[styles.editIconPhoto, { backgroundColor: theme.orange }]}
+                >
+                  <Ionicons name="camera" size={20} color="#fff" />
+                </View>
+              </TouchableOpacity>
             </View>
 
             {/* Form Fields */}
@@ -210,7 +393,15 @@ export default function Profile() {
               <View style={styles.row}>
                 <View style={[styles.inputWrapper, styles.halfWidth]}>
                   <View
-                    style={[styles.inputContainer, { borderColor: "#444" }]}
+                    style={[
+                      styles.inputContainer,
+                      {
+                        borderColor: isEditing ? theme.orange : "#444",
+                        backgroundColor: isEditing
+                          ? theme.tabsBack
+                          : "transparent",
+                      },
+                    ]}
                   >
                     <Ionicons
                       name="person-outline"
@@ -224,6 +415,7 @@ export default function Profile() {
                         setFormData({ ...formData, nombre: text })
                       }
                       placeholderTextColor="#666"
+                      editable={isEditing}
                     />
                   </View>
                   <Text style={styles.label}>Nombre</Text>
@@ -231,7 +423,15 @@ export default function Profile() {
 
                 <View style={[styles.inputWrapper, styles.halfWidth]}>
                   <View
-                    style={[styles.inputContainer, { borderColor: "#444" }]}
+                    style={[
+                      styles.inputContainer,
+                      {
+                        borderColor: isEditing ? theme.orange : "#444",
+                        backgroundColor: isEditing
+                          ? theme.tabsBack
+                          : "transparent",
+                      },
+                    ]}
                   >
                     <Ionicons
                       name="person-outline"
@@ -245,6 +445,7 @@ export default function Profile() {
                         setFormData({ ...formData, apellido: text })
                       }
                       placeholderTextColor="#666"
+                      editable={isEditing}
                     />
                   </View>
                   <Text style={styles.label}>Apellido</Text>
@@ -258,14 +459,12 @@ export default function Profile() {
                   <TextInput
                     style={[styles.input, { color: theme.text }]}
                     value={formData.correo}
-                    onChangeText={(text) =>
-                      setFormData({ ...formData, correo: text })
-                    }
                     keyboardType="email-address"
                     placeholderTextColor="#666"
+                    editable={false}
                   />
                 </View>
-                <Text style={styles.label}>Correo</Text>
+                <Text style={styles.label}>Correo (no editable)</Text>
               </View>
 
               {/* Contraseña */}
@@ -279,14 +478,12 @@ export default function Profile() {
                   <TextInput
                     style={[styles.input, { color: theme.text }]}
                     value={formData.contraseña}
-                    onChangeText={(text) =>
-                      setFormData({ ...formData, contraseña: text })
-                    }
                     secureTextEntry
                     placeholderTextColor="#666"
+                    editable={false}
                   />
                 </View>
-                <Text style={styles.label}>Contraseña</Text>
+                <Text style={styles.label}>Contraseña (no editable)</Text>
               </View>
             </View>
           </View>
@@ -527,7 +724,7 @@ export default function Profile() {
           style={styles.modalOverlay}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-          <KeyboardAvoidingView
+          <View
             style={[styles.modalContent, { backgroundColor: theme.background }]}
           >
             <View style={styles.modalHeader}>
@@ -562,9 +759,16 @@ export default function Profile() {
                 <Text style={styles.modalButtonText}>Guardar Peso</Text>
               </TouchableOpacity>
             </View>
-          </KeyboardAvoidingView>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Camera Modal para foto de perfil */}
+      <CameraModal
+        visible={showCamera}
+        onClose={() => setShowCamera(false)}
+        onSelect={(uri) => uploadImage(uri)}
+      />
     </View>
   );
 }
@@ -631,15 +835,41 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  editActionsContainer: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  actionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   imageContainer: {
     alignItems: "center",
     marginBottom: 40,
+  },
+  avatarContainer: {
+    position: "relative",
   },
   profileImage: {
     width: 120,
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
+  },
+  editIconPhoto: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: "#fff",
   },
   formContainer: {
     gap: 20,
