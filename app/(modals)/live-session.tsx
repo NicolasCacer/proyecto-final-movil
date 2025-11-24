@@ -1,6 +1,7 @@
 // --- IMPORTS ---
 import { AuthContext } from "@/context/AuthContext";
 import { ThemeContext } from "@/context/ThemeProvider";
+import AppText from "@/utils/AppText";
 import { supabase } from "@/utils/supabase";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -9,11 +10,13 @@ import {
   Image,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// ⭐ Circle SVG
+import Svg, { Circle } from "react-native-svg";
 
 interface Ejercicio {
   id: string;
@@ -40,9 +43,10 @@ export default function LiveSessionScreen() {
   const [players, setPlayers] = useState<any[]>([]);
   const [sessionState, setSessionState] = useState<any>(null);
   const [timerLeft, setTimerLeft] = useState<number>(0);
+  const [startSeconds, setStartSeconds] = useState<number>(0); // ⭐ tiempo inicial
 
   const [exercises, setExercises] = useState<Ejercicio[]>([]);
-  const [completedLocal, setCompletedLocal] = useState<string[]>([]); // 👈 HISTORIAL LOCAL
+  const [completedLocal, setCompletedLocal] = useState<string[]>([]);
 
   // ------------------------------------------------
   // FETCH EXERCISES OF CURRENT PLAYER
@@ -129,10 +133,12 @@ export default function LiveSessionScreen() {
         fetchMembers
       )
       .subscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [realSessionId]);
 
   useEffect(() => {
     if (!sessionState) initializeStateIfMissing();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [players]);
 
   // ------------------------------------------------
@@ -144,9 +150,14 @@ export default function LiveSessionScreen() {
       return;
     }
 
+    const end = new Date(sessionState.timer_ends_at).getTime();
+
+    // calcular tiempo inicial
+    const totalSec = Math.floor((end - Date.now()) / 1000);
+    if (totalSec > 0) setStartSeconds(totalSec);
+
     const tick = () => {
       const now = Date.now();
-      const end = new Date(sessionState.timer_ends_at).getTime();
       const diff = Math.max(0, Math.floor((end - now) / 1000));
       setTimerLeft(diff);
     };
@@ -163,28 +174,29 @@ export default function LiveSessionScreen() {
     if (sessionState.current_player !== user?.id) return;
 
     const minutes = Number(ex.minutes);
-    if (!minutes || isNaN(minutes) || minutes < 0) return;
+    if (!minutes || isNaN(minutes)) return;
 
-    const endTimestamp = Date.now() + minutes * 60 * 1000;
-    const endTime = new Date(endTimestamp).toISOString();
+    const durationMs = minutes * 60 * 1000;
+    const endTimestamp = Date.now() + durationMs;
+
+    setStartSeconds(Math.floor(durationMs / 1000)); // ⭐ para el círculo
 
     await supabase
       .from("session_state")
       .update({
         current_exercise: ex.id,
-        timer_ends_at: endTime,
+        timer_ends_at: new Date(endTimestamp).toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq("session_id", realSessionId);
   };
 
   // ------------------------------------------------
-  // END TURN → marcar ejercicio como completado local
+  // END TURN
   // ------------------------------------------------
   const endTurn = async () => {
-    if (!players.length || !sessionState || !realSessionId) return;
+    if (!players.length || !sessionState) return;
 
-    // Solo marcar si el ejercicio existe
     if (sessionState.current_exercise) {
       setCompletedLocal((prev) => [...prev, sessionState.current_exercise]);
     }
@@ -206,15 +218,26 @@ export default function LiveSessionScreen() {
       .eq("session_id", realSessionId);
 
     setTimerLeft(0);
+    setStartSeconds(0);
   };
 
   // ------------------------------------------------
-  // FILTER: si es mi turno → ocultar los completados
+  // FILTER EXERCISES
   // ------------------------------------------------
   const filteredExercises =
     sessionState?.current_player === user?.id
       ? exercises.filter((ex) => !completedLocal.includes(ex.id))
       : exercises;
+
+  // ------------------------------------------------
+  // SVG CIRCLE PROGRESS
+  // ------------------------------------------------
+  const radius = 55;
+  const circ = 2 * Math.PI * radius;
+
+  const progress = startSeconds > 0 ? timerLeft / startSeconds : 0;
+
+  const strokeOffset = circ * (1 - progress);
 
   // ------------------------------------------------
   // UI
@@ -231,18 +254,50 @@ export default function LiveSessionScreen() {
           }}
         >
           <Ionicons name="chevron-back" size={24} color={theme.text} />
-          <Text style={[styles.exitText, { color: theme.text }]}>Volver</Text>
+          <AppText
+            style={[
+              styles.exitText,
+              {
+                color: theme.text,
+              },
+            ]}
+          >
+            Volver
+          </AppText>
         </TouchableOpacity>
 
         {/* TITLE */}
-        <Text style={[styles.title, { color: theme.text }]}>
-          🔥 Live Training
-        </Text>
+        <AppText style={[styles.title, { color: theme.text }]}>
+          🔥 Multi Entrenamiento
+        </AppText>
 
-        {/* TIMER */}
-        <Text style={[styles.timer, { color: theme.orange }]}>
-          ⏱ {timerLeft}s
-        </Text>
+        {/* ⭐ TIMER CIRCLE */}
+        <View style={styles.timerContainer}>
+          <Svg height="140" width="140">
+            <Circle
+              cx="70"
+              cy="70"
+              r={radius}
+              stroke={theme.tabsBack}
+              strokeWidth="10"
+              fill="none"
+            />
+            <Circle
+              cx="70"
+              cy="70"
+              r={radius}
+              stroke={theme.orange}
+              strokeWidth="10"
+              strokeLinecap="round"
+              strokeDasharray={circ}
+              strokeDashoffset={strokeOffset}
+              fill="none"
+            />
+          </Svg>
+          <AppText style={[styles.timerText, { color: theme.text }]}>
+            {timerLeft}
+          </AppText>
+        </View>
 
         {/* PLAYERS */}
         <View style={styles.playersRow}>
@@ -261,9 +316,9 @@ export default function LiveSessionScreen() {
                 ]}
               >
                 {isTurn && (
-                  <Text style={[styles.turnTag, { color: theme.orange }]}>
+                  <AppText style={[styles.turnTag, { color: theme.orange }]}>
                     🎯 Turno actual
-                  </Text>
+                  </AppText>
                 )}
 
                 <Image
@@ -271,14 +326,14 @@ export default function LiveSessionScreen() {
                   style={styles.avatar}
                 />
 
-                <Text style={[styles.playerName, { color: theme.text }]}>
+                <AppText style={[styles.playerName, { color: theme.text }]}>
                   {p.profiles.name} {p.profiles.lastName}
-                </Text>
+                </AppText>
 
                 {isTurn && p.user_id === user?.id && (
-                  <Text style={[styles.you, { color: theme.orange }]}>
+                  <AppText style={[styles.you, { color: theme.orange }]}>
                     (Tu turno)
-                  </Text>
+                  </AppText>
                 )}
               </View>
             );
@@ -291,17 +346,17 @@ export default function LiveSessionScreen() {
             style={[styles.endTurnBtn, { backgroundColor: theme.orange }]}
             onPress={endTurn}
           >
-            <Text style={[styles.endTurnText, { color: theme.white }]}>
+            <AppText style={[styles.endTurnText, { color: theme.white }]}>
               Terminar turno
-            </Text>
+            </AppText>
           </TouchableOpacity>
         )}
 
         {/* EXERCISES */}
-        <View style={{ marginTop: 25, flex: 1 }}>
-          <Text style={[styles.exTitle, { color: theme.text }]}>
+        <View style={{ marginTop: 15, flex: 1 }}>
+          <AppText style={[styles.exTitle, { color: theme.text }]}>
             🏋️ Ejercicios del jugador
-          </Text>
+          </AppText>
 
           {filteredExercises.length > 0 ? (
             <ScrollView
@@ -310,6 +365,10 @@ export default function LiveSessionScreen() {
             >
               {filteredExercises.map((ex) => {
                 const isMyTurn = sessionState?.current_player === user?.id;
+                const isSelected = sessionState?.current_exercise === ex.id;
+
+                // 🔥 Si NO es mi turno → solo mostrar el seleccionado
+                if (!isMyTurn && !isSelected) return null;
 
                 return (
                   <TouchableOpacity
@@ -319,38 +378,55 @@ export default function LiveSessionScreen() {
                     style={[
                       styles.exerciseCard,
                       {
-                        backgroundColor: theme.tabsBack,
-                        borderColor:
-                          sessionState?.current_exercise === ex.id
-                            ? theme.orange
-                            : theme.orange + "55",
-                        opacity: isMyTurn ? 1 : 0.5,
+                        backgroundColor: isSelected
+                          ? theme.orange + "55"
+                          : theme.tabsBack,
+                        borderColor: isSelected ? theme.orange : "transparent",
+
+                        shadowColor: isSelected ? theme.orange : "#000",
+                        shadowOpacity: isSelected ? 0.45 : 0.1,
+                        shadowRadius: isSelected ? 12 : 6,
+                        shadowOffset: { width: 0, height: isSelected ? 6 : 3 },
                       },
                     ]}
                   >
-                    <Text style={[styles.exName, { color: theme.text }]}>
+                    <AppText style={[styles.exName, { color: theme.text }]}>
                       {ex.name}
-                    </Text>
+                    </AppText>
+                    <AppText
+                      style={[
+                        styles.exDetail,
+                        { color: theme.orange, marginBottom: 8 },
+                      ]}
+                    >
+                      {ex.description}
+                    </AppText>
 
                     <View style={styles.exDetailRow}>
-                      <Text style={[styles.exDetail, { color: theme.orange }]}>
+                      <AppText
+                        style={[styles.exDetail, { color: theme.orange }]}
+                      >
                         {ex.series} series
-                      </Text>
-                      <Text style={[styles.exDetail, { color: theme.orange }]}>
+                      </AppText>
+                      <AppText
+                        style={[styles.exDetail, { color: theme.orange }]}
+                      >
                         {ex.min_reps}-{ex.max_reps} reps
-                      </Text>
-                      <Text style={[styles.exDetail, { color: theme.orange }]}>
+                      </AppText>
+                      <AppText
+                        style={[styles.exDetail, { color: theme.orange }]}
+                      >
                         {ex.minutes} min
-                      </Text>
+                      </AppText>
                     </View>
                   </TouchableOpacity>
                 );
               })}
             </ScrollView>
           ) : (
-            <Text style={{ color: theme.text }}>
+            <AppText style={{ color: theme.text }}>
               No quedan ejercicios por realizar.
-            </Text>
+            </AppText>
           )}
         </View>
       </View>
@@ -366,19 +442,25 @@ const styles = StyleSheet.create({
   exitBtn: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
   exitText: { fontSize: 18, marginLeft: 4 },
 
-  title: { fontSize: 28, fontWeight: "700", textAlign: "center" },
+  title: { fontSize: 24, fontWeight: "700", textAlign: "center" },
 
-  timer: {
-    fontSize: 34,
+  // ⭐ NUEVO TIMER CIRCLE
+  timerContainer: {
+    width: 160,
+    height: 160,
+    alignSelf: "center",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  timerText: {
+    position: "absolute",
+    fontSize: 26,
     fontWeight: "700",
-    textAlign: "center",
-    marginVertical: 12,
   },
 
   playersRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 15,
   },
 
   playerCard: {
@@ -396,24 +478,24 @@ const styles = StyleSheet.create({
     backgroundColor: "#444",
   },
 
-  turnTag: { fontSize: 14, marginBottom: 8 },
+  turnTag: { fontSize: 14 },
   playerName: { fontSize: 18, marginTop: 8, textAlign: "center" },
-  you: { marginTop: 4, fontSize: 13 },
+  you: { fontSize: 13 },
 
   endTurnBtn: {
     padding: 16,
     borderRadius: 12,
-    marginTop: 25,
+    marginTop: 15,
     alignItems: "center",
   },
-  endTurnText: { fontSize: 18, fontWeight: "600" },
+  endTurnText: { fontSize: 18, fontWeight: "bold" },
 
   exTitle: { fontSize: 22, marginBottom: 10, fontWeight: "700" },
 
   exerciseCard: {
     padding: 15,
     borderRadius: 12,
-    borderWidth: 1.5,
+    borderWidth: 1,
     marginBottom: 12,
   },
 
