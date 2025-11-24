@@ -1,6 +1,7 @@
 import CustomInput from "@/components/customInput";
 import { ThemeContext } from "@/context/ThemeProvider";
 import AppText from "@/utils/AppText";
+import { supabase } from "@/utils/supabase";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useContext, useState } from "react";
@@ -26,7 +27,7 @@ export default function RecoverScreen() {
     setEmail(value);
 
     if (value.length === 0) {
-      setError(""); // no mostrar error si está vacío
+      setError("");
       return;
     }
 
@@ -37,7 +38,8 @@ export default function RecoverScreen() {
     }
   };
 
-  const handleSend = () => {
+  // 🔥 Enviar enlace real de recuperación
+  const handleSend = async () => {
     if (!validateEmail(email)) {
       setError("Correo inválido");
 
@@ -52,8 +54,29 @@ export default function RecoverScreen() {
 
     setError("");
 
-    console.log("Enviar enlace a:", email);
-    router.push("/update");
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: "gymcol://update",
+    });
+
+    if (error) {
+      console.log("Error al enviar enlace:", error);
+      Alert.alert(
+        "Error",
+        "Ocurrió un problema enviando el enlace. Intenta nuevamente."
+      );
+      return;
+    }
+
+    Alert.alert(
+      "Correo enviado",
+      "Revisa tu bandeja de entrada y sigue las instrucciones.",
+      [
+        {
+          text: "OK",
+          onPress: () => router.replace("/login"),
+        },
+      ]
+    );
   };
 
   return (
@@ -107,7 +130,7 @@ export default function RecoverScreen() {
         </AppText>
       ) : null}
 
-      {/* Botón de enviar */}
+      {/* Botón enviar */}
       <TouchableOpacity
         style={[
           styles.sendButton,

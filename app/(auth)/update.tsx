@@ -1,12 +1,14 @@
 import CustomInput from "@/components/customInput";
 import { ThemeContext } from "@/context/ThemeProvider";
 import AppText from "@/utils/AppText";
+import { supabase } from "@/utils/supabase";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
+  Linking,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -23,7 +25,34 @@ export default function UpdatePassword() {
   const [passwordError, setPasswordError] = useState("");
   const [matchError, setMatchError] = useState("");
 
-  // 🔐 Validación en tiempo real
+  const [accessToken, setAccessToken] = useState("");
+
+  // -------------------------------------------------------
+  //   1. LEER TOKEN DEL DEEP LINK
+  // -------------------------------------------------------
+  useEffect(() => {
+    const extractToken = async () => {
+      const url = await Linking.getInitialURL();
+      if (!url) return;
+
+      // Ejemplo: gymcol://update#access_token=XYZ&refresh_token=ABC
+      const fragment = url.split("#")[1];
+      if (!fragment) return;
+
+      const params = new URLSearchParams(fragment);
+      const token = params.get("access_token");
+
+      if (token) {
+        setAccessToken(token);
+      }
+    };
+
+    extractToken();
+  }, []);
+
+  // -------------------------------------------------------
+  //   2. VALIDACIÓN DE CONTRASEÑAS
+  // -------------------------------------------------------
   const validatePassword = (password: string) => {
     setNewPassword(password);
 
@@ -48,33 +77,80 @@ export default function UpdatePassword() {
   };
 
   const isButtonDisabled = useMemo(() => {
-    return !newPassword || !confirmPassword || !!passwordError || !!matchError;
-  }, [newPassword, confirmPassword, passwordError, matchError]);
+    return (
+      !newPassword ||
+      !confirmPassword ||
+      !!passwordError ||
+      !!matchError ||
+      !accessToken
+    );
+  }, [newPassword, confirmPassword, passwordError, matchError, accessToken]);
 
-  const handleSave = () => {
-    if (isButtonDisabled) {
+  // -------------------------------------------------------
+  //   3. GUARDAR CONTRASEÑA NUEVA EN SUPABASE
+  // -------------------------------------------------------
+  const handleSave = async () => {
+    if (!accessToken) {
       Alert.alert(
-        "Datos incompletos",
-        "Revisa que la contraseña sea segura y que ambas coincidan.",
-        [{ text: "Entendido" }]
+        "Enlace inválido",
+        "No se recibió un token. Vuelve a solicitar el correo."
       );
       return;
     }
 
-    Alert.alert(
-      "¡Contraseña actualizada!",
-      "Tu contraseña ha sido cambiada correctamente.",
-      [
-        {
-          text: "Iniciar sesión",
-          onPress: () => router.push("/login"),
-        },
-      ]
-    );
+    if (isButtonDisabled) {
+      Alert.alert(
+        "Datos incompletos",
+        "Revisa que la contraseña sea segura y que ambas coincidan."
+      );
+      return;
+    }
+
+    try {
+      // LOGIN TEMPORAL con el token enviado en el correo
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: accessToken,
+      });
+
+      if (sessionError) {
+        console.log("Error setSession:", sessionError);
+        Alert.alert("Error", "El enlace ya expiró o no es válido.");
+        return;
+      }
+
+      // ACTUALIZAR CONTRASEÑA REAL
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        console.log("Error updateUser:", error);
+        Alert.alert("Error", "No se pudo actualizar la contraseña.");
+        return;
+      }
+
+      Alert.alert(
+        "¡Contraseña actualizada!",
+        "Tu contraseña ha sido cambiada correctamente.",
+        [
+          {
+            text: "Iniciar sesión",
+            onPress: () => router.replace("/login"),
+          },
+        ]
+      );
+    } catch (error) {
+      console.log(error);
+      Alert.alert("Error inesperado", "Intenta nuevamente.");
+    }
   };
 
   const { theme } = themeContext;
 
+  // -------------------------------------------------------
+  //   4. UI COMPLETA
+  // -------------------------------------------------------
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: theme.background }]}
