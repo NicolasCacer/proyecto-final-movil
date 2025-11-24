@@ -3,20 +3,25 @@ import { DataContext } from "@/context/DataContext";
 import { ThemeContext } from "@/context/ThemeProvider";
 import AppText from "@/utils/AppText";
 import { supabase } from "@/utils/supabase";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 
 export default function LiveTraining() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const action = params.action; // "create" o "join"
+  const action = params.action;
 
   const { liveTrainingAPI } = useContext(DataContext);
   const { user } = useContext(AuthContext);
@@ -29,6 +34,28 @@ export default function LiveTraining() {
   const [waiting, setWaiting] = useState(false);
   const [participants, setParticipants] = useState<string[]>([]);
   const [channel, setChannel] = useState<any>(null);
+
+  const handleDeleteSession = async () => {
+    try {
+      // 1. Salir del canal si existe
+      if (channel) {
+        await liveTrainingAPI.leaveSession(channel);
+      }
+
+      // 3. Borrar la sesión completa
+      if (sessionId) {
+        await liveTrainingAPI.deleteSessionFull(sessionId, channel);
+      }
+
+      // 4. Limpiar canales de Supabase (importante)
+      supabase.removeAllChannels();
+
+      // 5. Regresar al entrenamiento
+      router.push("/training");
+    } catch (error) {
+      console.log("Error eliminando la sesión:", error);
+    }
+  };
 
   useEffect(() => {
     if (action === "create") createRoom();
@@ -85,40 +112,71 @@ export default function LiveTraining() {
     handleSessionStart(result.session.id);
   };
 
-  // --- Render ---
+  // --- FORMULARIO (diseño mejorado, lógica igual) ---
   const renderJoinForm = () => (
-    <View style={styles.joinContainer}>
-      <AppText style={[styles.label, { color: theme.text }]}>
-        Ingrese código de la sala:
-      </AppText>
-      <TextInput
-        style={[styles.input, { borderColor: theme.text, color: theme.text }]}
-        value={inputCode}
-        onChangeText={setInputCode}
-        placeholder="Código"
-        placeholderTextColor={theme.text + "99"}
-      />
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: theme.red }]}
-        onPress={joinRoom}
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "position"}
+        style={styles.joinContainer}
       >
-        <AppText style={styles.buttonText}>Unirse</AppText>
-      </TouchableOpacity>
-    </View>
+        {/* BOTÓN VOLVER */}
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backContainer}
+        >
+          <Ionicons name="chevron-back" size={26} color={theme.text} />
+          <AppText style={[styles.backText, { color: theme.text }]}>
+            Volver
+          </AppText>
+        </TouchableOpacity>
+
+        {/* FORM CARD */}
+        <View style={styles.card}>
+          <AppText style={[styles.label, { color: theme.text }]}>
+            Ingrese código de la sala
+          </AppText>
+
+          <TextInput
+            style={[
+              styles.input,
+              {
+                borderColor: theme.text + "55",
+                backgroundColor: theme.text + "0D",
+                color: theme.text,
+              },
+            ]}
+            value={inputCode}
+            onChangeText={setInputCode}
+            placeholder="Ej: ABC123"
+            placeholderTextColor={theme.text + "55"}
+          />
+
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: theme.red }]}
+            onPress={joinRoom}
+          >
+            <AppText style={styles.buttonText}>Unirse</AppText>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 
+  // --- WAITING ROOM ---
   const renderWaitingRoom = () => (
     <View style={styles.waitingContainer}>
       <AppText style={[styles.roomCodeText, { color: theme.text }]}>
         Sala: {roomCode}
       </AppText>
+
       {waiting && (
         <ActivityIndicator
           size="large"
-          color={theme.red}
+          color={theme.text}
           style={{ margin: 10 }}
         />
       )}
+
       <AppText style={{ color: theme.text }}>
         Esperando a otros participantes...
       </AppText>
@@ -126,25 +184,23 @@ export default function LiveTraining() {
       {participants.length > 0 && (
         <View style={styles.participants}>
           <AppText style={{ color: theme.text }}>
-            Participantes conectados:
+            Participantes conectándose
           </AppText>
-          {participants.map((p) => (
-            <AppText key={p} style={{ color: theme.text }}>
-              {p}
-            </AppText>
-          ))}
         </View>
       )}
 
       <TouchableOpacity
-        style={[styles.button, { backgroundColor: theme.text, marginTop: 20 }]}
+        style={[
+          styles.button,
+          { backgroundColor: theme.orange, marginTop: 20 },
+        ]}
         onPress={() => {
           supabase.removeAllChannels();
-          liveTrainingAPI.leaveSession(channel);
+          handleDeleteSession();
           router.push("/training");
         }}
       >
-        <AppText style={[styles.buttonText, { color: theme.background }]}>
+        <AppText style={[styles.buttonText, { color: theme.text }]}>
           Salir
         </AppText>
       </TouchableOpacity>
@@ -166,16 +222,68 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 20,
   },
-  joinContainer: { width: "100%" },
-  label: { fontSize: 16, marginBottom: 5 },
-  input: { borderWidth: 1, borderRadius: 8, padding: 10, marginVertical: 10 },
+
+  // FORM
+  joinContainer: {
+    width: "100%",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+
+  card: {
+    width: "100%",
+    padding: 25,
+    borderRadius: 20,
+    backgroundColor: "#ffffff09",
+    borderWidth: 1,
+    borderColor: "#ffffff22",
+  },
+
+  label: {
+    fontSize: 18,
+    marginBottom: 10,
+    fontWeight: "600",
+  },
+
+  input: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    fontSize: 18,
+    marginVertical: 12,
+    textAlign: "center",
+    letterSpacing: 2,
+  },
+
   button: {
     padding: 15,
-    borderRadius: 8,
+    marginTop: 10,
+    borderRadius: 50,
+    minWidth: 150,
     alignItems: "center",
   },
-  buttonText: { color: "#fff", fontWeight: "bold" },
+
+  buttonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 22,
+  },
+
   waitingContainer: { alignItems: "center" },
-  roomCodeText: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
-  participants: { marginTop: 20 },
+
+  roomCodeText: { fontSize: 28, fontWeight: "bold", marginBottom: 10 },
+
+  participants: { marginTop: 20, marginBottom: 10 },
+  backContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    marginBottom: 20,
+    paddingHorizontal: 5,
+  },
+
+  backText: {
+    fontSize: 18,
+    marginLeft: 5,
+  },
 });

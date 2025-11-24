@@ -25,6 +25,7 @@ export interface LiveTrainingAPI {
   ) => { memberChannel: any; statusChannel: any };
   leaveSession: (channels: any) => Promise<void>;
   updateSessionStatus: (sessionId: string, status: string) => Promise<boolean>;
+  deleteSessionFull: (sessionId: string, channels: any) => Promise<boolean>;
 }
 
 // ----------------------------------------------
@@ -208,6 +209,34 @@ export const DataProvider = ({ children }: any) => {
       }
 
       return true;
+    },
+    deleteSessionFull: async (sessionId: string, channels: any) => {
+      try {
+        // 1. Salir de los canales (subscripciones)
+        if (channels) {
+          if (channels.memberChannel)
+            await supabase.removeChannel(channels.memberChannel);
+          if (channels.statusChannel)
+            await supabase.removeChannel(channels.statusChannel);
+        }
+
+        // 2. Eliminar miembros
+        await supabase
+          .from("session_members")
+          .delete()
+          .eq("session_id", sessionId);
+
+        // 3. Eliminar la sesión completa
+        await supabase.from("sessions").delete().eq("id", sessionId);
+
+        // 4. Limpia cualquier canal restante de supabase
+        supabase.removeAllChannels();
+
+        return true;
+      } catch (error) {
+        console.log("Error en deleteSessionFull:", error);
+        return false;
+      }
     },
 
     subscribeToMembers: (
