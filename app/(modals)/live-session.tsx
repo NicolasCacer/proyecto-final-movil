@@ -1,3 +1,4 @@
+// --- IMPORTS ---
 import { AuthContext } from "@/context/AuthContext";
 import { ThemeContext } from "@/context/ThemeProvider";
 import { supabase } from "@/utils/supabase";
@@ -38,9 +39,14 @@ export default function LiveSessionScreen() {
 
   const [players, setPlayers] = useState<any[]>([]);
   const [sessionState, setSessionState] = useState<any>(null);
-  const [timerLeft, setTimerLeft] = useState<number>(5);
-  const [exercises, setExercises] = useState<Ejercicio[]>([]);
+  const [timerLeft, setTimerLeft] = useState<number>(0);
 
+  const [exercises, setExercises] = useState<Ejercicio[]>([]);
+  const [completedLocal, setCompletedLocal] = useState<string[]>([]); // 👈 HISTORIAL LOCAL
+
+  // ------------------------------------------------
+  // FETCH EXERCISES OF CURRENT PLAYER
+  // ------------------------------------------------
   const fetchExercisesForUser = async (userId: string) => {
     if (!userId) return;
 
@@ -57,6 +63,9 @@ export default function LiveSessionScreen() {
     fetchExercisesForUser(sessionState.current_player);
   }, [sessionState?.current_player]);
 
+  // ------------------------------------------------
+  // MEMBERS
+  // ------------------------------------------------
   const fetchMembers = async () => {
     const { data } = await supabase
       .from("session_members")
@@ -66,6 +75,9 @@ export default function LiveSessionScreen() {
     if (data) setPlayers(data);
   };
 
+  // ------------------------------------------------
+  // SESSION STATE
+  // ------------------------------------------------
   const fetchSessionState = async () => {
     const { data } = await supabase
       .from("session_state")
@@ -77,20 +89,23 @@ export default function LiveSessionScreen() {
   };
 
   const initializeStateIfMissing = async () => {
-    if (!realSessionId) return;
-    if (sessionState) return;
-    if (players.length < 2) return;
+    if (!realSessionId || sessionState || players.length < 2) return;
 
     await supabase.from("session_state").upsert({
       session_id: realSessionId,
       current_player: players[0].user_id,
       turn_index: 0,
       status: "playing",
+      current_exercise: null,
+      timer_ends_at: null,
     });
 
     await fetchSessionState();
   };
 
+  // ------------------------------------------------
+  // SUBSCRIPTIONS
+  // ------------------------------------------------
   useEffect(() => {
     if (!realSessionId) return;
 
@@ -98,7 +113,7 @@ export default function LiveSessionScreen() {
     fetchSessionState();
 
     supabase
-      .channel(`session-state-${realSessionId}`)
+      .channel(`state-${realSessionId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "session_state" },
@@ -107,7 +122,7 @@ export default function LiveSessionScreen() {
       .subscribe();
 
     supabase
-      .channel(`session-members-${realSessionId}`)
+      .channel(`members-${realSessionId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "session_members" },
@@ -120,49 +135,94 @@ export default function LiveSessionScreen() {
     if (!sessionState) initializeStateIfMissing();
   }, [players]);
 
+  // ------------------------------------------------
+  // TIMER SYNC
+  // ------------------------------------------------
   useEffect(() => {
-    if (!sessionState?.current_player) return;
+    if (!sessionState?.timer_ends_at) {
+      setTimerLeft(0);
+      return;
+    }
 
-    setTimerLeft(5);
+    const tick = () => {
+      const now = Date.now();
+      const end = new Date(sessionState.timer_ends_at).getTime();
+      const diff = Math.max(0, Math.floor((end - now) / 1000));
+      setTimerLeft(diff);
+    };
 
-    const interval = setInterval(() => {
-      setTimerLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
+    tick();
+    const interval = setInterval(tick, 250);
     return () => clearInterval(interval);
-  }, [sessionState?.current_player]);
+  }, [sessionState?.timer_ends_at]);
 
-  const endTurn = async () => {
-    if (!players.length || !sessionState || !realSessionId) return;
+  // ------------------------------------------------
+  // SELECT EXERCISE
+  // ------------------------------------------------
+  const selectExercise = async (ex: Ejercicio) => {
+    if (sessionState.current_player !== user?.id) return;
 
-    const currentIndex = players.findIndex(
-      (p) => p.user_id === sessionState.current_player
-    );
-    const nextPlayer = players[(currentIndex + 1) % players.length];
+    const minutes = Number(ex.minutes);
+    if (!minutes || isNaN(minutes) || minutes < 0) return;
+
+    const endTimestamp = Date.now() + minutes * 60 * 1000;
+    const endTime = new Date(endTimestamp).toISOString();
 
     await supabase
       .from("session_state")
       .update({
-        current_player: nextPlayer.user_id,
+        current_exercise: ex.id,
+        timer_ends_at: endTime,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("session_id", realSessionId);
+  };
+
+  // ------------------------------------------------
+  // END TURN → marcar ejercicio como completado local
+  // ------------------------------------------------
+  const endTurn = async () => {
+    if (!players.length || !sessionState || !realSessionId) return;
+
+    // Solo marcar si el ejercicio existe
+    if (sessionState.current_exercise) {
+      setCompletedLocal((prev) => [...prev, sessionState.current_exercise]);
+    }
+
+    const index = players.findIndex(
+      (p) => p.user_id === sessionState.current_player
+    );
+    const next = players[(index + 1) % players.length];
+
+    await supabase
+      .from("session_state")
+      .update({
+        current_player: next.user_id,
+        current_exercise: null,
+        timer_ends_at: null,
         turn_index: sessionState.turn_index + 1,
         updated_at: new Date().toISOString(),
       })
-      .eq("session_id", realSessionId)
-      .eq("current_player", sessionState.current_player);
+      .eq("session_id", realSessionId);
 
-    setTimerLeft(5);
+    setTimerLeft(0);
   };
 
+  // ------------------------------------------------
+  // FILTER: si es mi turno → ocultar los completados
+  // ------------------------------------------------
+  const filteredExercises =
+    sessionState?.current_player === user?.id
+      ? exercises.filter((ex) => !completedLocal.includes(ex.id))
+      : exercises;
+
+  // ------------------------------------------------
+  // UI
+  // ------------------------------------------------
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
       <View style={styles.container}>
-        {/* BACK BUTTON */}
+        {/* EXIT */}
         <TouchableOpacity
           style={styles.exitBtn}
           onPress={() => {
@@ -225,7 +285,7 @@ export default function LiveSessionScreen() {
           })}
         </View>
 
-        {/* END TURN BUTTON */}
+        {/* END TURN */}
         {sessionState?.current_player === user?.id && (
           <TouchableOpacity
             style={[styles.endTurnBtn, { backgroundColor: theme.orange }]}
@@ -237,48 +297,60 @@ export default function LiveSessionScreen() {
           </TouchableOpacity>
         )}
 
-        {/* EXERCISES LIST */}
+        {/* EXERCISES */}
         <View style={{ marginTop: 25, flex: 1 }}>
           <Text style={[styles.exTitle, { color: theme.text }]}>
             🏋️ Ejercicios del jugador
           </Text>
 
-          {exercises.length > 0 ? (
+          {filteredExercises.length > 0 ? (
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 40 }}
             >
-              {exercises.map((ex) => (
-                <View
-                  key={ex.id}
-                  style={[
-                    styles.exerciseCard,
-                    {
-                      backgroundColor: theme.tabsBack,
-                      borderColor: theme.orange,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.exName, { color: theme.text }]}>
-                    {ex.name}
-                  </Text>
+              {filteredExercises.map((ex) => {
+                const isMyTurn = sessionState?.current_player === user?.id;
 
-                  <View style={styles.exDetailRow}>
-                    <Text style={[styles.exDetail, { color: theme.orange }]}>
-                      {ex.series} series
+                return (
+                  <TouchableOpacity
+                    key={ex.id}
+                    disabled={!isMyTurn}
+                    onPress={() => selectExercise(ex)}
+                    style={[
+                      styles.exerciseCard,
+                      {
+                        backgroundColor: theme.tabsBack,
+                        borderColor:
+                          sessionState?.current_exercise === ex.id
+                            ? theme.orange
+                            : theme.orange + "55",
+                        opacity: isMyTurn ? 1 : 0.5,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.exName, { color: theme.text }]}>
+                      {ex.name}
                     </Text>
-                    <Text style={[styles.exDetail, { color: theme.orange }]}>
-                      {ex.min_reps}-{ex.max_reps} reps
-                    </Text>
-                    <Text style={[styles.exDetail, { color: theme.orange }]}>
-                      {ex.minutes} min
-                    </Text>
-                  </View>
-                </View>
-              ))}
+
+                    <View style={styles.exDetailRow}>
+                      <Text style={[styles.exDetail, { color: theme.orange }]}>
+                        {ex.series} series
+                      </Text>
+                      <Text style={[styles.exDetail, { color: theme.orange }]}>
+                        {ex.min_reps}-{ex.max_reps} reps
+                      </Text>
+                      <Text style={[styles.exDetail, { color: theme.orange }]}>
+                        {ex.minutes} min
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           ) : (
-            <Text style={{ color: theme.text }}>No hay ejercicios.</Text>
+            <Text style={{ color: theme.text }}>
+              No quedan ejercicios por realizar.
+            </Text>
           )}
         </View>
       </View>
@@ -286,26 +358,15 @@ export default function LiveSessionScreen() {
   );
 }
 
+// --- STYLES ---
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   container: { flex: 1, padding: 20 },
 
-  exitBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  exitText: {
-    fontSize: 18,
-    marginLeft: 4,
-  },
+  exitBtn: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
+  exitText: { fontSize: 18, marginLeft: 4 },
 
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    textAlign: "center",
-    marginBottom: 10,
-  },
+  title: { fontSize: 28, fontWeight: "700", textAlign: "center" },
 
   timer: {
     fontSize: 34,
@@ -326,16 +387,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 2,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-
-  turnTag: {
-    fontSize: 14,
-    marginBottom: 6,
-    fontWeight: "600",
   },
 
   avatar: {
@@ -345,17 +396,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#444",
   },
 
-  playerName: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginTop: 10,
-    textAlign: "center",
-  },
-
-  you: {
-    marginTop: 4,
-    fontSize: 13,
-  },
+  turnTag: { fontSize: 14, marginBottom: 8 },
+  playerName: { fontSize: 18, marginTop: 8, textAlign: "center" },
+  you: { marginTop: 4, fontSize: 13 },
 
   endTurnBtn: {
     padding: 16,
@@ -363,16 +406,9 @@ const styles = StyleSheet.create({
     marginTop: 25,
     alignItems: "center",
   },
-  endTurnText: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
+  endTurnText: { fontSize: 18, fontWeight: "600" },
 
-  exTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 10,
-  },
+  exTitle: { fontSize: 22, marginBottom: 10, fontWeight: "700" },
 
   exerciseCard: {
     padding: 15,
@@ -381,17 +417,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  exName: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 6,
-  },
+  exName: { fontSize: 18, fontWeight: "700", marginBottom: 6 },
+
   exDetailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  exDetail: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
+
+  exDetail: { fontSize: 14, fontWeight: "600" },
 });
