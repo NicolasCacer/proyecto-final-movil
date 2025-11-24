@@ -1,4 +1,5 @@
 import { AuthContext } from "@/context/AuthContext";
+import { ThemeContext } from "@/context/ThemeProvider";
 import { supabase } from "@/utils/supabase";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -13,9 +14,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// -------------------------------------------------------
-//  INTERFACE EJERCICIO
-// -------------------------------------------------------
 interface Ejercicio {
   id: string;
   name: string;
@@ -36,27 +34,22 @@ export default function LiveSessionScreen() {
 
   const router = useRouter();
   const { user } = useContext(AuthContext);
+  const { theme } = useContext(ThemeContext);
 
   const [players, setPlayers] = useState<any[]>([]);
-  const [progress, setProgress] = useState<any[]>([]);
   const [sessionState, setSessionState] = useState<any>(null);
-  const [timerLeft, setTimerLeft] = useState<number>(0);
+  const [timerLeft, setTimerLeft] = useState<number>(5);
   const [exercises, setExercises] = useState<Ejercicio[]>([]);
 
-  // ------------------------------------------------------------
-  // Fetch exercises del usuario en turno
-  // ------------------------------------------------------------
   const fetchExercisesForUser = async (userId: string) => {
     if (!userId) return;
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("exercises")
       .select("*")
       .eq("user_id", userId);
 
-    if (error) return;
-
-    setExercises(data as Ejercicio[]);
+    if (data) setExercises(data as Ejercicio[]);
   };
 
   useEffect(() => {
@@ -64,9 +57,6 @@ export default function LiveSessionScreen() {
     fetchExercisesForUser(sessionState.current_player);
   }, [sessionState?.current_player]);
 
-  // ------------------------------------------------------------
-  // RESTO DE LA LÓGICA
-  // ------------------------------------------------------------
   const fetchMembers = async () => {
     const { data } = await supabase
       .from("session_members")
@@ -74,15 +64,6 @@ export default function LiveSessionScreen() {
       .eq("session_id", realSessionId);
 
     if (data) setPlayers(data);
-  };
-
-  const fetchProgress = async () => {
-    const { data } = await supabase
-      .from("session_progress")
-      .select("*")
-      .eq("session_id", realSessionId);
-
-    if (data) setProgress(data);
   };
 
   const fetchSessionState = async () => {
@@ -114,25 +95,14 @@ export default function LiveSessionScreen() {
     if (!realSessionId) return;
 
     fetchMembers();
-    fetchProgress();
     fetchSessionState();
 
-    // live listeners
     supabase
       .channel(`session-state-${realSessionId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "session_state" },
         (payload) => payload.new && setSessionState(payload.new)
-      )
-      .subscribe();
-
-    supabase
-      .channel(`session-progress-${realSessionId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "session_progress" },
-        fetchProgress
       )
       .subscribe();
 
@@ -150,7 +120,6 @@ export default function LiveSessionScreen() {
     if (!sessionState) initializeStateIfMissing();
   }, [players]);
 
-  // Timer 5 segundos
   useEffect(() => {
     if (!sessionState?.current_player) return;
 
@@ -160,7 +129,6 @@ export default function LiveSessionScreen() {
       setTimerLeft((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          if (user?.id === sessionState.current_player) endTurn();
           return 0;
         }
         return prev - 1;
@@ -170,30 +138,12 @@ export default function LiveSessionScreen() {
     return () => clearInterval(interval);
   }, [sessionState?.current_player]);
 
-  const getReps = (id: string) =>
-    progress.find((p) => p.user_id === id)?.reps ?? 0;
-
-  const addRepetition = async () => {
-    if (!user?.id || !realSessionId) return;
-
-    await supabase.from("session_progress").upsert(
-      {
-        session_id: realSessionId,
-        user_id: user.id,
-        reps: getReps(user.id) + 1,
-        completed: false,
-      },
-      { onConflict: "session_id,user_id" }
-    );
-  };
-
   const endTurn = async () => {
     if (!players.length || !sessionState || !realSessionId) return;
 
     const currentIndex = players.findIndex(
       (p) => p.user_id === sessionState.current_player
     );
-
     const nextPlayer = players[(currentIndex + 1) % players.length];
 
     await supabase
@@ -205,15 +155,14 @@ export default function LiveSessionScreen() {
       })
       .eq("session_id", realSessionId)
       .eq("current_player", sessionState.current_player);
+
+    setTimerLeft(5);
   };
 
-  // ------------------------------------------------------------
-  // RENDER
-  // ------------------------------------------------------------
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
       <View style={styles.container}>
-        {/* Botón salir */}
+        {/* BACK BUTTON */}
         <TouchableOpacity
           style={styles.exitBtn}
           onPress={() => {
@@ -221,51 +170,76 @@ export default function LiveSessionScreen() {
             router.push("/training");
           }}
         >
-          <Ionicons name="chevron-back" size={24} color="#fff" />
-          <Text style={styles.exitText}> Volver</Text>
+          <Ionicons name="chevron-back" size={24} color={theme.text} />
+          <Text style={[styles.exitText, { color: theme.text }]}>Volver</Text>
         </TouchableOpacity>
 
-        <Text style={styles.title}>🔥 Live Training</Text>
-
-        <Text style={styles.turnText}>
-          Turno de:{" "}
-          {players.find((p) => p.user_id === sessionState?.current_player)
-            ?.profiles?.name ?? "Esperando..."}
+        {/* TITLE */}
+        <Text style={[styles.title, { color: theme.text }]}>
+          🔥 Live Training
         </Text>
 
-        <Text style={styles.timer}>⏱ {timerLeft}s</Text>
+        {/* TIMER */}
+        <Text style={[styles.timer, { color: theme.orange }]}>
+          ⏱ {timerLeft}s
+        </Text>
 
-        <View style={styles.row}>
-          {players.map((p) => (
-            <View key={p.user_id} style={styles.playerBox}>
-              <Image
-                source={{ uri: p.profiles.avatar_url }}
-                style={styles.avatar}
-              />
-              <Text style={styles.playerName}>
-                {p.profiles.name} {p.profiles.lastName}
-              </Text>
-              <Text style={styles.reps}>{getReps(p.user_id)} reps</Text>
-            </View>
-          ))}
+        {/* PLAYERS */}
+        <View style={styles.playersRow}>
+          {players.map((p) => {
+            const isTurn = p.user_id === sessionState?.current_player;
+
+            return (
+              <View
+                key={p.user_id}
+                style={[
+                  styles.playerCard,
+                  {
+                    backgroundColor: theme.tabsBack,
+                    borderColor: isTurn ? theme.orange : "transparent",
+                  },
+                ]}
+              >
+                {isTurn && (
+                  <Text style={[styles.turnTag, { color: theme.orange }]}>
+                    🎯 Turno actual
+                  </Text>
+                )}
+
+                <Image
+                  source={{ uri: p.profiles.avatar_url }}
+                  style={styles.avatar}
+                />
+
+                <Text style={[styles.playerName, { color: theme.text }]}>
+                  {p.profiles.name} {p.profiles.lastName}
+                </Text>
+
+                {isTurn && p.user_id === user?.id && (
+                  <Text style={[styles.you, { color: theme.orange }]}>
+                    (Tu turno)
+                  </Text>
+                )}
+              </View>
+            );
+          })}
         </View>
 
-        {/* Botones del jugador */}
+        {/* END TURN BUTTON */}
         {sessionState?.current_player === user?.id && (
-          <>
-            <TouchableOpacity style={styles.btn} onPress={addRepetition}>
-              <Text style={styles.btnText}>+1 Repetición</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.btnSecondary} onPress={endTurn}>
-              <Text style={styles.btnText}>Terminar turno</Text>
-            </TouchableOpacity>
-          </>
+          <TouchableOpacity
+            style={[styles.endTurnBtn, { backgroundColor: theme.orange }]}
+            onPress={endTurn}
+          >
+            <Text style={[styles.endTurnText, { color: theme.white }]}>
+              Terminar turno
+            </Text>
+          </TouchableOpacity>
         )}
 
-        {/* EJERCICIOS DEL JUGADOR */}
-        <View style={{ marginTop: 20, flex: 1 }}>
-          <Text style={{ color: "white", fontSize: 20, marginBottom: 10 }}>
+        {/* EXERCISES LIST */}
+        <View style={{ marginTop: 25, flex: 1 }}>
+          <Text style={[styles.exTitle, { color: theme.text }]}>
             🏋️ Ejercicios del jugador
           </Text>
 
@@ -275,29 +249,36 @@ export default function LiveSessionScreen() {
               contentContainerStyle={{ paddingBottom: 40 }}
             >
               {exercises.map((ex) => (
-                <View key={ex.id} style={styles.exerciseCompact}>
-                  <View style={styles.exRow}>
-                    <Text style={styles.exName}>{ex.name}</Text>
-                    <Text style={styles.exMuscle}>{ex.muscle_group}</Text>
-                  </View>
+                <View
+                  key={ex.id}
+                  style={[
+                    styles.exerciseCard,
+                    {
+                      backgroundColor: theme.tabsBack,
+                      borderColor: theme.orange,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.exName, { color: theme.text }]}>
+                    {ex.name}
+                  </Text>
 
-                  <View style={styles.exDetailsRow}>
-                    <Text style={styles.exDetail}>{ex.series} series</Text>
-                    <Text style={styles.exDetail}>
+                  <View style={styles.exDetailRow}>
+                    <Text style={[styles.exDetail, { color: theme.orange }]}>
+                      {ex.series} series
+                    </Text>
+                    <Text style={[styles.exDetail, { color: theme.orange }]}>
                       {ex.min_reps}-{ex.max_reps} reps
                     </Text>
-                    {ex.weight ? (
-                      <Text style={styles.exDetail}>{ex.weight}kg</Text>
-                    ) : null}
-                    <Text style={styles.exDetail}>{ex.minutes} min</Text>
+                    <Text style={[styles.exDetail, { color: theme.orange }]}>
+                      {ex.minutes} min
+                    </Text>
                   </View>
                 </View>
               ))}
             </ScrollView>
           ) : (
-            <Text style={{ color: "white" }}>
-              No hay ejercicios para este usuario.
-            </Text>
+            <Text style={{ color: theme.text }}>No hay ejercicios.</Text>
           )}
         </View>
       </View>
@@ -306,93 +287,111 @@ export default function LiveSessionScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0E0E0E" },
+  safe: { flex: 1 },
   container: { flex: 1, padding: 20 },
 
   exitBtn: {
-    marginBottom: 10,
-    padding: 10,
-    alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 10,
   },
-  exitText: { color: "#fff", fontSize: 18 },
+  exitText: {
+    fontSize: 18,
+    marginLeft: 4,
+  },
 
   title: {
-    fontSize: 26,
-    color: "white",
+    fontSize: 28,
+    fontWeight: "700",
     textAlign: "center",
-    marginBottom: 20,
-  },
-
-  row: { flexDirection: "row", justifyContent: "space-between", marginTop: 20 },
-
-  playerBox: {
-    width: "48%",
-    backgroundColor: "#1B1B1B",
-    padding: 20,
-    borderRadius: 14,
-    alignItems: "center",
-  },
-
-  playerName: { color: "white", fontSize: 18, marginTop: 10 },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#333" },
-  reps: { color: "#4CAF50", marginTop: 10, fontSize: 18, fontWeight: "bold" },
-
-  turnText: { color: "white", textAlign: "center", fontSize: 18 },
-  timer: { color: "#FF5E5E", textAlign: "center", fontSize: 22, marginTop: 10 },
-
-  btn: {
-    backgroundColor: "#4CAF50",
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 30,
-  },
-  btnSecondary: {
-    backgroundColor: "#444",
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 10,
-  },
-  btnText: { textAlign: "center", color: "white", fontSize: 16 },
-
-  // -------------------------------------------------
-  // EJERCICIO COMPACTO
-  // -------------------------------------------------
-  exerciseCompact: {
-    backgroundColor: "#1B1B1B",
-    padding: 12,
-    borderRadius: 10,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#2E2E2E",
   },
 
-  exRow: {
+  timer: {
+    fontSize: 34,
+    fontWeight: "700",
+    textAlign: "center",
+    marginVertical: 12,
+  },
+
+  playersRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 4,
+    marginTop: 15,
   },
 
-  exName: {
-    color: "white",
-    fontSize: 16,
+  playerCard: {
+    width: "48%",
+    padding: 18,
+    borderRadius: 16,
+    borderWidth: 2,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+
+  turnTag: {
+    fontSize: 14,
+    marginBottom: 6,
     fontWeight: "600",
   },
 
-  exMuscle: {
-    fontSize: 12,
-    color: "#888",
-    textTransform: "capitalize",
+  avatar: {
+    width: 78,
+    height: 78,
+    borderRadius: 40,
+    backgroundColor: "#444",
   },
 
-  exDetailsRow: {
+  playerName: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 10,
+    textAlign: "center",
+  },
+
+  you: {
+    marginTop: 4,
+    fontSize: 13,
+  },
+
+  endTurnBtn: {
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 25,
+    alignItems: "center",
+  },
+  endTurnText: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+
+  exTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 10,
+  },
+
+  exerciseCard: {
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    marginBottom: 12,
+  },
+
+  exName: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+  exDetailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
   },
-
   exDetail: {
-    color: "#ccc",
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
