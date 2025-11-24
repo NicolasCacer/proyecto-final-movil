@@ -214,6 +214,7 @@ export const DataProvider = ({ children }: any) => {
       sessionId: string,
       callback: (arg0: {
         type: string;
+        // eslint-disable-next-line @typescript-eslint/no-empty-object-type
         data: {} | { [key: string]: any };
       }) => void
     ) => {
