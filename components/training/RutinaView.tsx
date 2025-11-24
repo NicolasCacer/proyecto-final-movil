@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import MultiEntrenarButton from "./MultiTrainingModal";
 
 interface Ejercicio {
   id: string;
@@ -164,6 +165,7 @@ export default function RutinaView() {
     handleCloseMenu();
     setLoadingAI(true);
     const prompt = `
+      Semilla ${Math.random()}. 
       Eres un coach fitness profesional. Genera una rutina de ejercicios en JSON sin unidades de medida. 
       El usuario tiene las siguientes características:
       - Peso actual: ${user?.actualweight} kg
@@ -645,8 +647,10 @@ export default function RutinaView() {
                         { backgroundColor: theme.orange },
                       ]}
                       onPress={() => {
-                        console.log("Iniciar entrenamiento:", rutina.name);
-                        // Aquí irá la lógica futura
+                        router.push({
+                          pathname: "/(modals)/RoutineTimer",
+                          params: { rutina: JSON.stringify(rutina) },
+                        });
                       }}
                     >
                       <Ionicons name="play-circle" size={24} color="#fff" />
@@ -656,21 +660,7 @@ export default function RutinaView() {
                     </TouchableOpacity>
 
                     {/* Botón de Entrenar en Conjunto */}
-                    <TouchableOpacity
-                      style={[
-                        styles.entrenarButton,
-                        { backgroundColor: theme.red },
-                      ]}
-                      onPress={() => {
-                        console.log("Iniciar entrenamiento:", rutina.name);
-                        // Aquí irá la lógica futura
-                      }}
-                    >
-                      <Ionicons name="play-circle" size={24} color="#fff" />
-                      <AppText style={styles.entrenarButtonText}>
-                        Multi Entrenar
-                      </AppText>
-                    </TouchableOpacity>
+                    <MultiEntrenarButton rutina={rutina}></MultiEntrenarButton>
                   </View>
                 </View>
               )}
