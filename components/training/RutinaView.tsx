@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import MultiEntrenarButton from "./MultiTrainingModal";
 
 interface Ejercicio {
   id: string;
@@ -659,24 +660,7 @@ export default function RutinaView() {
                     </TouchableOpacity>
 
                     {/* Botón de Entrenar en Conjunto */}
-                    <TouchableOpacity
-                      style={[
-                        styles.entrenarButton,
-                        { backgroundColor: theme.red },
-                      ]}
-                      onPress={() => {
-                        console.log(
-                          "Iniciar entrenamiento conjunto:",
-                          rutina.name
-                        );
-                        // Aquí irá la lógica futura
-                      }}
-                    >
-                      <Ionicons name="play-circle" size={24} color="#fff" />
-                      <AppText style={styles.entrenarButtonText}>
-                        Multi Entrenar
-                      </AppText>
-                    </TouchableOpacity>
+                    <MultiEntrenarButton rutina={rutina}></MultiEntrenarButton>
                   </View>
                 </View>
               )}

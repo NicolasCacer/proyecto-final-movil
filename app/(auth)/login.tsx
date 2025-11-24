@@ -92,6 +92,11 @@ export default function Login() {
     }
   };
 
+  const handleRegister = () => {
+    setLoading(false);
+    router.replace("/register");
+  };
+
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView
@@ -184,7 +189,7 @@ export default function Login() {
 
           <TouchableOpacity
             style={[styles.registerButton, { backgroundColor: theme.text }]}
-            onPress={() => router.push("/register")}
+            onPress={handleRegister}
           >
             <AppText style={[styles.registerText, { color: theme.background }]}>
               Registrarme

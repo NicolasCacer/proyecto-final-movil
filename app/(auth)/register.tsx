@@ -25,7 +25,7 @@ export default function Register() {
   const themeContext = useContext(ThemeContext);
   const authContex = useContext(AuthContext);
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const [step, setStep] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);

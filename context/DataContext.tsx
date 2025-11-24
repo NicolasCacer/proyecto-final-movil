@@ -13,6 +13,20 @@ type CRUD = {
   delete: (id: string) => Promise<boolean>;
 };
 
+export interface LiveTrainingAPI {
+  createSession: () => Promise<{ success: boolean; session?: any }>;
+  joinSession: (
+    roomCode: string
+  ) => Promise<{ success: boolean; session?: any }>;
+  joinSessionRoom: (sessionId: string, userId: string) => Promise<boolean>;
+  subscribeToMembers: (
+    sessionId: string,
+    callback: (payload: any) => void
+  ) => { memberChannel: any; statusChannel: any };
+  leaveSession: (channels: any) => Promise<void>;
+  updateSessionStatus: (sessionId: string, status: string) => Promise<boolean>;
+}
+
 // ----------------------------------------------
 // Interfaz del Contexto
 // ----------------------------------------------
@@ -25,6 +39,7 @@ export interface DataContextType {
   exercisesAPI: CRUD;
   activitiesAPI: CRUD;
   messagesAPI: CRUD;
+  liveTrainingAPI: LiveTrainingAPI;
 }
 
 // ----------------------------------------------
@@ -125,6 +140,134 @@ export const DataProvider = ({ children }: any) => {
   const activitiesAPI = createCRUD("activities");
   const messagesAPI = createCRUD("messages");
 
+  const liveTrainingAPI = {
+    createSession: async (): Promise<{ success: boolean; session?: any }> => {
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const { data, error } = await supabase
+        .from("sessions")
+        .insert({ room_code: code })
+        .select("*")
+        .single();
+
+      if (error) {
+        console.log("Error creando sesión:", error.message);
+        return { success: false };
+      }
+      return { success: true, session: data };
+    },
+
+    updateSessionStatus: async (sessionId: string, status: string) => {
+      const { error } = await supabase
+        .from("sessions")
+        .update({ status })
+        .eq("id", sessionId);
+
+      if (error) {
+        console.log("Error actualizando status:", error.message);
+        return false;
+      }
+      return true;
+    },
+
+    joinSession: async (roomCode: string) => {
+      const { data, error } = await supabase
+        .from("sessions")
+        .select("*")
+        .eq("room_code", roomCode)
+        .single();
+
+      if (error || !data) {
+        console.log("Sala no encontrada:", error?.message);
+        return { success: false };
+      }
+
+      return { success: true, session: data };
+    },
+
+    joinSessionRoom: async (sessionId: string, userId: string) => {
+      const { error } = await supabase
+        .from("session_members")
+        .insert({ session_id: sessionId, user_id: userId });
+
+      if (error) {
+        console.log("Error uniendo a la sala:", error.message);
+        return false;
+      }
+
+      // --- Consultar cuántos usuarios hay ahora ---
+      const { data: members } = await supabase
+        .from("session_members")
+        .select("id")
+        .eq("session_id", sessionId);
+
+      if (members && members.length === 2) {
+        await supabase
+          .from("sessions")
+          .update({ status: "started" })
+          .eq("id", sessionId);
+      }
+
+      return true;
+    },
+
+    subscribeToMembers: (
+      sessionId: string,
+      callback: (arg0: {
+        type: string;
+        data: {} | { [key: string]: any };
+      }) => void
+    ) => {
+      const memberChannel = supabase
+        .channel(`session-members-${sessionId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "session_members",
+            filter: `session_id=eq.${sessionId}`,
+          },
+          (event) => {
+            callback({
+              type: "member",
+              data: event.new || event.old,
+            });
+          }
+        )
+        .subscribe();
+
+      const statusChannel = supabase
+        .channel(`session-status-${sessionId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "sessions",
+            filter: `id=eq.${sessionId}`,
+          },
+          (event) => {
+            callback({
+              type: "status",
+              data: event.new,
+            });
+          }
+        )
+        .subscribe();
+
+      return { memberChannel, statusChannel };
+    },
+
+    leaveSession: async (channels: any) => {
+      if (channels) {
+        if (channels.memberChannel)
+          await supabase.removeChannel(channels.memberChannel);
+        if (channels.statusChannel)
+          await supabase.removeChannel(channels.statusChannel);
+      }
+    },
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -135,6 +278,7 @@ export const DataProvider = ({ children }: any) => {
         exercisesAPI,
         activitiesAPI,
         messagesAPI,
+        liveTrainingAPI,
       }}
     >
       {children}
