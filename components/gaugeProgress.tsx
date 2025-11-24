@@ -133,7 +133,7 @@ export default function GaugeProgress({ data, meta }: GaugeProps) {
             </AppText>
 
             <AppText style={[styles.subText, { color: theme.text + "AA" }]}>
-              ¡ya estas más cerca{"\n"}de tu meta!
+              ¡ya estas más cerca{"\n"}de tu meta de {meta} Kcal!
             </AppText>
 
             <AppText style={[styles.percent, { color: theme.text }]}>

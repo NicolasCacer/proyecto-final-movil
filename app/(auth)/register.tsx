@@ -182,6 +182,63 @@ export default function Register() {
     if (step < 3) setStep(step + 1);
   };
 
+  async function handleWeeklyKcalGoal(formData: any) {
+    const prompt = `
+    Eres un entrenador deportivo experto en planificación de déficit calórico. Basado en estos datos reales:
+    - Peso actual: ${formData.peso} kg
+    - Peso objetivo: ${formData.metaPeso} kg
+    - Estatura: ${formData.estatura} cm
+    - Actividad física: ${formData.actividad}
+    - Índice de grasa corporal actual: ${formData.grasa || "no proporcionado"}%
+    - Índice de grasa corporal objetivo: ${
+      formData.metaGrasa || "no proporcionado"
+    }%
+    - Gustos y preferencias: ${formData.gustos || "no proporcionado"}
+    - nivel de actvidad física: ${formData.actividad}
+    Calcula y sugiere un objetivo semanal de consumo de Kilocalorías (targetKcal) para que esta persona alcance su peso ideal de manera saludable y sostenible. estas Kcal solo hacen parte del ejercico realizado por la persona durante la semana
+  `;
+
+    try {
+      const res = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        {
+          method: "POST",
+          headers: {
+            "x-goog-api-key": process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? "",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              responseMimeType: "application/json",
+              responseJsonSchema: {
+                type: "object",
+                properties: {
+                  targetKcal: { type: "number" },
+                },
+                required: ["targetKcal"],
+              },
+            },
+          }),
+        }
+      );
+
+      const data = await res.json();
+      const jsonText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!jsonText) return null;
+
+      return JSON.parse(jsonText);
+    } catch (e) {
+      console.log("Error generando targetKcal IA:", e);
+      Alert.alert(
+        "Error",
+        "No se pudo calcular el objetivo de calorías semanales. Intenta de nuevo."
+      );
+      return null;
+    }
+  }
+
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: theme.background }]}
@@ -519,6 +576,7 @@ export default function Register() {
                       }
 
                       setLoading(true);
+                      const kcalAI = await handleWeeklyKcalGoal(formData);
 
                       const success = await authContex.register(
                         formData.contraseña,
@@ -537,6 +595,7 @@ export default function Register() {
                             ? Number(formData.metaGrasa)
                             : null,
                           aicontext: formData.gustos.trim().toLowerCase(),
+                          targetKcal: Number(kcalAI.targetKcal),
                         }
                       );
 
