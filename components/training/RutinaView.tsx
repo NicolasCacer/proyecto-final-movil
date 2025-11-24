@@ -49,7 +49,7 @@ export default function RutinaView() {
   const { routinesAPI, exercisesAPI, activitiesAPI } = useContext(DataContext);
 
   const [rutinas, setRutinas] = useState<Rutina[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loadingAI, setLoadingAI] = useState(false);
 
   const [expandedRoutine, setExpandedRoutine] = useState<string | null>(null);

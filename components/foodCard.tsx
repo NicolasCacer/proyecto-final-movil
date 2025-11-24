@@ -1,7 +1,7 @@
 import { ThemeContext } from "@/context/ThemeProvider";
 import AppText from "@/utils/AppText";
 import { Image } from "expo-image";
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   Modal,
   ScrollView,
@@ -32,16 +32,58 @@ export default function FoodCard({
   buttonText = "Cerrar",
 }: FoodCardProps) {
   const [modalVisible, setModalVisible] = useState(false);
+  const [safeImage, setSafeImage] = useState(image);
   const themeContext = useContext(ThemeContext);
 
   const { theme } = themeContext;
+  const defaultImg =
+    "https://jumboalacarta.com.ar/wp-content/uploads/2019/06/shutterstock_521741356-1024x684.jpg";
+
+  const isValidUrl = async (url?: string): Promise<boolean> => {
+    if (!url) return false;
+
+    // --- Validar estructura ---
+    try {
+      new URL(url);
+    } catch (e) {
+      console.log("❌ URL inválida (estructura):", e);
+      return false;
+    }
+
+    // --- Validar HEAD ---
+    try {
+      const response = await fetch(url, { method: "HEAD" });
+
+      if (response.ok) {
+        console.log("✅ URL válida y existe:", url);
+        return true;
+      }
+
+      console.log("❌ URL válida pero NO existe:", url, response.status);
+      return false;
+    } catch (err) {
+      console.log("❌ Error verificando URL:", url, err);
+      return false;
+    }
+  };
+
+  // ======================================================
+  //  VALIDAR IMAGEN UNA VEZ Y GUARDAR RESULTADO
+  // ======================================================
+  useEffect(() => {
+    const checkImage = async () => {
+      const ok = await isValidUrl(image);
+      setSafeImage(ok ? image : defaultImg);
+    };
+    checkImage();
+  }, [image]);
 
   return (
     <View style={{ width: "100%" }}>
       {/* Tarjeta */}
       <View style={[styles.card, { backgroundColor: theme.tabsBack }]}>
         {/* Imagen */}
-        <Image source={{ uri: image }} style={styles.image} />
+        <Image source={{ uri: safeImage }} style={styles.image} />
 
         {/* Info */}
         <View style={styles.infoContainer}>
@@ -54,7 +96,6 @@ export default function FoodCard({
               onPress={() => setModalVisible(true)}
               style={[styles.button, { backgroundColor: theme.orange }]}
             >
-              {/* Ícono dinámico, si no se pasa, se usa uno por defecto */}
               {icon || (
                 <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
                   <Path
@@ -69,10 +110,7 @@ export default function FoodCard({
             </TouchableOpacity>
           </View>
 
-          <AppText
-            style={[styles.description, { color: theme.text }]}
-            numberOfLines={4}
-          >
+          <AppText style={[styles.description, { color: theme.text }]}>
             {description}
           </AppText>
         </View>
@@ -120,6 +158,7 @@ export default function FoodCard({
                 {
                   alignSelf: "center",
                   marginTop: 10,
+                  width: 80,
                   backgroundColor: theme.orange,
                 },
               ]}
@@ -139,55 +178,64 @@ export default function FoodCard({
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   card: {
     borderRadius: 20,
-    height: 150,
+    height: 160,
     flexDirection: "row",
-    padding: 12,
+    padding: 14,
     alignItems: "center",
+    gap: 12,
   },
+
   image: {
     width: 120,
     height: "100%",
     borderRadius: 15,
   },
+
   infoContainer: {
     flex: 1,
-    marginLeft: 12,
+    flexDirection: "column",
     justifyContent: "space-between",
+    height: "100%",
+    paddingVertical: 4,
   },
+
   titleRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
   },
   title: {
     fontSize: 20,
     fontWeight: "bold",
     flexShrink: 1,
-    marginRight: 10,
+    flexGrow: 1,
   },
+
   description: {
     fontSize: 15,
-    flex: 1,
-    marginTop: 6,
+    marginTop: 8,
+    lineHeight: 20,
+    maxHeight: 60,
   },
   button: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 15,
-    flexShrink: 0,
-    minWidth: 32,
+    padding: 8,
+    borderRadius: 12,
+    width: 36,
+    height: 36,
     alignItems: "center",
     justifyContent: "center",
   },
+
   modalBackground: {
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 20,
   },
+
   modalContent: {
     borderRadius: 20,
     padding: 20,

@@ -17,6 +17,8 @@ export interface User {
   targetfatindex?: number | null;
   avatar_url?: string | null;
   aicontext?: string | null;
+
+  targetKcal?: number;
 }
 
 interface AuthContextProps {
@@ -82,6 +84,7 @@ export const AuthProvider = ({ children }: any) => {
     avatar_url: profile.avatar_url,
     targetfatindex: profile.targetfatindex,
     aicontext: profile.aicontext,
+    targetKcal: profile.targetKcal,
   });
 
   // ---------------------------
@@ -135,6 +138,7 @@ export const AuthProvider = ({ children }: any) => {
       fatindex: userData.fatindex ?? null,
       targetfatindex: userData.targetfatindex ?? null,
       aicontext: userData.aicontext ?? null,
+      targetKcal: userData.targetKcal,
     });
 
     if (insertError) {
