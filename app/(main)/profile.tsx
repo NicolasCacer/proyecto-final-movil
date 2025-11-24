@@ -1,3 +1,7 @@
+import SubscriptionModal from "@/components/subscription/SubscriptionModal";
+import PaymentModal from "@/components/subscription/PaymentModal";
+import SuccessModal from "@/components/subscription/SuccessModal";
+import { PlanType } from "@/types/subscription";
 import CameraModal from "@/components/cameraModal";
 import FullScreenLoader from "@/components/fullScreenLoader";
 import { AuthContext } from "@/context/AuthContext";
@@ -34,6 +38,11 @@ export default function Profile() {
   const [avatarUrl, setAvatarUrl] = useState(
     authContext.user?.avatar_url || ""
   );
+  const [subscriptionModalVisible, setSubscriptionModalVisible] = useState(false);
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<PlanType>("semester");
+
 
   const [formData, setFormData] = useState({
     nombre: authContext.user?.name || "",
@@ -247,6 +256,22 @@ export default function Profile() {
       // Activar edición
       setIsEditing(true);
     }
+  };
+
+//handleSelectPlan, handlePaymentSuccess, handleSuccessClose
+   const handleSelectPlan = (plan: PlanType) => {
+    setSelectedPlan(plan);
+    setSubscriptionModalVisible(false);
+    setTimeout(() => setPaymentModalVisible(true), 300);
+  };
+
+  const handlePaymentSuccess = () => {
+    setPaymentModalVisible(false);
+    setTimeout(() => setSuccessModalVisible(true), 300);
+  };
+
+  const handleSuccessClose = () => {
+    setSuccessModalVisible(false);
   };
 
   // Función para guardar cambios
@@ -624,6 +649,8 @@ export default function Profile() {
 
         {activeTab === "configuracion" && (
           <View style={styles.configContent}>
+            
+          
             {/* Modo Oscuro */}
             <View
               style={[styles.configItem, { backgroundColor: theme.tabsBack }]}
@@ -692,6 +719,27 @@ export default function Profile() {
                 ios_backgroundColor="#3e3e3e"
               />
             </View>
+
+            {/* 💎 GymCol Premium - AGREGAR ESTE BLOQUE */}
+            <TouchableOpacity
+              style={[styles.configItem, { backgroundColor: theme.tabsBack }]}
+              onPress={() => setSubscriptionModalVisible(true)}
+            >
+              <View style={styles.configLeft}>
+                <View style={[styles.iconCircle, { backgroundColor: theme.orange + "20" }]}>
+                  <Ionicons name="diamond" size={24} color={theme.orange} />
+                </View>
+                <View style={styles.configTextContainer}>
+                  <Text style={[styles.configTitle, { color: theme.text }]}>
+                    GymCol Premium
+                  </Text>
+                  <Text style={styles.configSubtitle}>
+                    Desbloquea todas las funciones
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#666" />
+            </TouchableOpacity>
 
             {/* Cerrar Sesión */}
             <TouchableOpacity
@@ -778,6 +826,25 @@ export default function Profile() {
         visible={showCamera}
         onClose={() => setShowCamera(false)}
         onSelect={(uri) => uploadImage(uri)}
+      />
+      {/* 💎 Modales de Suscripción - AGREGAR AL FINAL */}
+      <SubscriptionModal
+        visible={subscriptionModalVisible}
+        onClose={() => setSubscriptionModalVisible(false)}
+        onSelectPlan={handleSelectPlan}
+      />
+
+      <PaymentModal
+        visible={paymentModalVisible}
+        selectedPlan={selectedPlan}
+        onClose={() => setPaymentModalVisible(false)}
+        onSuccess={handlePaymentSuccess}
+      />
+
+      <SuccessModal
+        visible={successModalVisible}
+        selectedPlan={selectedPlan}
+        onClose={handleSuccessClose}
       />
     </View>
   );
