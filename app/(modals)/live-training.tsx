@@ -2,6 +2,7 @@ import { AuthContext } from "@/context/AuthContext";
 import { DataContext } from "@/context/DataContext";
 import { ThemeContext } from "@/context/ThemeProvider";
 import AppText from "@/utils/AppText";
+import { supabase } from "@/utils/supabase";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useContext, useEffect, useState } from "react";
 import {
@@ -137,7 +138,11 @@ export default function LiveTraining() {
 
       <TouchableOpacity
         style={[styles.button, { backgroundColor: theme.text, marginTop: 20 }]}
-        onPress={() => liveTrainingAPI.leaveSession(channel)}
+        onPress={() => {
+          supabase.removeAllChannels();
+          liveTrainingAPI.leaveSession(channel);
+          router.push("/training");
+        }}
       >
         <AppText style={[styles.buttonText, { color: theme.background }]}>
           Salir
