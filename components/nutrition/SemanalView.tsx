@@ -76,13 +76,36 @@ export default function SemanalView({
               >
                 <View style={styles.diaInfo}>
                   <Text style={[styles.diaNombre, { color: theme.text }]}>
-                    {new Date(dia.fecha)
-                      .toLocaleDateString("es-ES", {
-                        weekday: "long",
-                        day: "numeric",
-                      })
-                      .replace(",", "")
-                      .replace(/^./, (c) => c.toUpperCase())}
+                    {(() => {
+                      // parseo local seguro (maneja "YYYY-MM-DD", timestamps en s/ms o Date/ISO)
+                      const toLocalDate = (val: string | number | Date) => {
+                        if (val instanceof Date) return val;
+                        if (typeof val === "number")
+                          return val < 1e12
+                            ? new Date(val * 1000)
+                            : new Date(val);
+                        if (typeof val === "string") {
+                          const isoDateOnly = /^\d{4}-\d{2}-\d{2}$/;
+                          if (isoDateOnly.test(val)) {
+                            const [y, m, d] = val
+                              .split("-")
+                              .map((n) => parseInt(n, 10));
+                            return new Date(y, m - 1, d);
+                          }
+                          return new Date(val);
+                        }
+                        return new Date(String(val));
+                      };
+
+                      const d = toLocalDate(dia.fecha);
+                      return d
+                        .toLocaleDateString("es-ES", {
+                          weekday: "long",
+                          day: "numeric",
+                        })
+                        .replace(",", "")
+                        .replace(/^./, (c) => c.toUpperCase());
+                    })()}
                   </Text>
 
                   {/* Comidas reales desde useNutrition */}
