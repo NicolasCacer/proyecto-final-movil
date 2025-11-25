@@ -224,6 +224,8 @@ export default function Home() {
         const activities = await activitiesAPI.getAll();
         const exercises = await exercisesAPI.getAll();
 
+        await authContex.refreshUser();
+
         if (!activities || !exercises) return;
 
         const weekly = { L: 0, M: 0, Mi: 0, J: 0, V: 0, S: 0, D: 0 };
