@@ -38,9 +38,29 @@ interface Ejercicio {
 export default function CreateRoutine() {
   const themeContext = useContext(ThemeContext);
   const params = useLocalSearchParams() as { prefill?: string };
-  const initialData = params.prefill
-    ? JSON.parse(decodeURIComponent(params.prefill))
-    : null;
+
+  // Reemplazar la decodificación directa por una versión segura:
+  let initialData: any = null;
+  if (params.prefill) {
+    try {
+      const decoded = decodeURIComponent(params.prefill);
+      initialData = JSON.parse(decoded);
+    } catch (err) {
+      console.warn(
+        "decode/parse params.prefill falló, intentando parsear sin decodificar:",
+        err
+      );
+      try {
+        initialData = JSON.parse(params.prefill);
+      } catch (err2) {
+        console.warn(
+          "parse params.prefill sin decodificar también falló:",
+          err2
+        );
+        initialData = null;
+      }
+    }
+  }
   const [nombreRutina, setNombreRutina] = useState(initialData?.name || "");
 
   const router = useRouter();
